@@ -1,0 +1,13 @@
+# Downloaded asset packs (large zips)
+*.zip
+*.zip:Zone.Identifier
+assets/rpg-tileset/
+assets/pixel-crawler/
+assets/pipoya/
+assets/rpg-tileset.zip
+assets/pixel-crawler.zip
+assets/enemies.png
+assets/sprites/player/*_preview.png
+assets/sprites/npcs/*_preview.png
+assets/sprites/player/player_bottom.png
+assets/sprites/player/player_top.png

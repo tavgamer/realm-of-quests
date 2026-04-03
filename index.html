@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realm of Quests</title>
+
+    <!-- Pixel art font -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <!-- Phaser 3 Game Engine (loaded from CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+
+    <!-- Data files (no dependencies, load first) -->
+    <script src="js/data/levelCurve.js"></script>
+    <script src="js/data/enemies.js"></script>
+    <script src="js/data/weapons.js"></script>
+    <script src="js/data/armor.js"></script>
+    <script src="js/data/npcs.js"></script>
+    <script src="js/data/quests.js"></script>
+    <script src="js/data/areas.js"></script>
+
+    <!-- Utilities -->
+    <script src="js/utils/helpers.js"></script>
+
+    <!-- Entities (depend on data) -->
+    <script src="js/entities/Player.js"></script>
+
+    <!-- Scenes (depend on entities and data) -->
+    <script src="js/scenes/BootScene.js"></script>
+    <script src="js/scenes/MenuScene.js"></script>
+    <script src="js/scenes/GameScene.js"></script>
+    <script src="js/scenes/UIScene.js"></script>
+
+    <!-- Main game config (loads last, starts everything) -->
+    <script src="js/main.js"></script>
+</body>
+</html>

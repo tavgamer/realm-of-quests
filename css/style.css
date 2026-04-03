@@ -1,0 +1,22 @@
+/* Realm of Quests - Game Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Press Start 2P', monospace;
+}
+
+#game-container {
+    border: 3px solid #e94560;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+}
