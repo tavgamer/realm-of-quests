@@ -246,9 +246,12 @@ class GameScene extends Phaser.Scene {
         // Don't process combat if player is dead
         if (this.player.isDead) return;
 
-        // --- PLAYER ATTACK ---
-        if (Phaser.Input.Keyboard.JustDown(this.attackKey)) {
+        // --- PLAYER ATTACK (keyboard Space OR mobile touch button) ---
+        const touchAttack = this.uiScene && this.uiScene.touchAttack;
+        if (Phaser.Input.Keyboard.JustDown(this.attackKey) || touchAttack) {
             this.combatSystem.playerAttack(this.player, this.enemies);
+            // Reset touch attack so it doesn't fire every frame
+            if (this.uiScene) this.uiScene.touchAttack = false;
         }
 
         // --- UPDATE ENEMIES ---

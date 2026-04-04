@@ -86,20 +86,25 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         let velocityX = 0;
         let velocityY = 0;
 
-        // Check horizontal movement (left/right)
-        if (this.cursors.left.isDown || this.wasd.left.isDown) {
+        // Read touch input from the UIScene (mobile controls)
+        const uiScene = this.scene.scene.get('UI');
+        const touchX = uiScene && uiScene.touchDirection ? uiScene.touchDirection.x : 0;
+        const touchY = uiScene && uiScene.touchDirection ? uiScene.touchDirection.y : 0;
+
+        // Check horizontal movement (keyboard OR touch)
+        if (this.cursors.left.isDown || this.wasd.left.isDown || touchX < 0) {
             velocityX = -this.moveSpeed;
             this.facing = 'left';
-        } else if (this.cursors.right.isDown || this.wasd.right.isDown) {
+        } else if (this.cursors.right.isDown || this.wasd.right.isDown || touchX > 0) {
             velocityX = this.moveSpeed;
             this.facing = 'right';
         }
 
-        // Check vertical movement (up/down)
-        if (this.cursors.up.isDown || this.wasd.up.isDown) {
+        // Check vertical movement (keyboard OR touch)
+        if (this.cursors.up.isDown || this.wasd.up.isDown || touchY < 0) {
             velocityY = -this.moveSpeed;
             this.facing = 'up';
-        } else if (this.cursors.down.isDown || this.wasd.down.isDown) {
+        } else if (this.cursors.down.isDown || this.wasd.down.isDown || touchY > 0) {
             velocityY = this.moveSpeed;
             this.facing = 'down';
         }

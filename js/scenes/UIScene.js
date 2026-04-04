@@ -85,6 +85,93 @@ class UIScene extends Phaser.Scene {
             duration: 1000,
             delay: 5000
         });
+
+        // --- MOBILE TOUCH CONTROLS ---
+        // Only show on touch devices (phones/tablets).
+        // A D-pad on the left for movement, and an Attack button on the right.
+        //
+        // We store the current touch direction so the GameScene can read it.
+        this.touchDirection = { x: 0, y: 0 };
+        this.touchAttack = false;
+
+        // Check if this is a touch device
+        if (this.sys.game.device.input.touch) {
+            this.createMobileControls();
+        }
+    }
+
+    // --- CREATE MOBILE D-PAD AND ATTACK BUTTON ---
+    createMobileControls() {
+        const alpha = 0.4;  // Semi-transparent so they don't block the view
+
+        // --- D-PAD (bottom-left) ---
+        const padX = 100;
+        const padY = 500;
+        const btnSize = 50;
+        const gap = 4;
+
+        // D-pad background circle
+        const padBg = this.add.circle(padX, padY, 80, 0x000000, 0.25).setDepth(30);
+
+        // UP button
+        const upBtn = this.add.rectangle(padX, padY - btnSize - gap, btnSize, btnSize, 0xffffff, alpha)
+            .setDepth(31).setInteractive();
+        this.add.text(padX, padY - btnSize - gap, '▲', {
+            fontSize: '20px', color: '#ffffff'
+        }).setOrigin(0.5).setDepth(32).setAlpha(0.7);
+
+        // DOWN button
+        const downBtn = this.add.rectangle(padX, padY + btnSize + gap, btnSize, btnSize, 0xffffff, alpha)
+            .setDepth(31).setInteractive();
+        this.add.text(padX, padY + btnSize + gap, '▼', {
+            fontSize: '20px', color: '#ffffff'
+        }).setOrigin(0.5).setDepth(32).setAlpha(0.7);
+
+        // LEFT button
+        const leftBtn = this.add.rectangle(padX - btnSize - gap, padY, btnSize, btnSize, 0xffffff, alpha)
+            .setDepth(31).setInteractive();
+        this.add.text(padX - btnSize - gap, padY, '◄', {
+            fontSize: '20px', color: '#ffffff'
+        }).setOrigin(0.5).setDepth(32).setAlpha(0.7);
+
+        // RIGHT button
+        const rightBtn = this.add.rectangle(padX + btnSize + gap, padY, btnSize, btnSize, 0xffffff, alpha)
+            .setDepth(31).setInteractive();
+        this.add.text(padX + btnSize + gap, padY, '►', {
+            fontSize: '20px', color: '#ffffff'
+        }).setOrigin(0.5).setDepth(32).setAlpha(0.7);
+
+        // D-pad input handlers
+        // pointerdown = finger touched, pointerup/pointerout = finger lifted
+        upBtn.on('pointerdown', () => { this.touchDirection.y = -1; });
+        upBtn.on('pointerup', () => { this.touchDirection.y = 0; });
+        upBtn.on('pointerout', () => { this.touchDirection.y = 0; });
+
+        downBtn.on('pointerdown', () => { this.touchDirection.y = 1; });
+        downBtn.on('pointerup', () => { this.touchDirection.y = 0; });
+        downBtn.on('pointerout', () => { this.touchDirection.y = 0; });
+
+        leftBtn.on('pointerdown', () => { this.touchDirection.x = -1; });
+        leftBtn.on('pointerup', () => { this.touchDirection.x = 0; });
+        leftBtn.on('pointerout', () => { this.touchDirection.x = 0; });
+
+        rightBtn.on('pointerdown', () => { this.touchDirection.x = 1; });
+        rightBtn.on('pointerup', () => { this.touchDirection.x = 0; });
+        rightBtn.on('pointerout', () => { this.touchDirection.x = 0; });
+
+        // --- ATTACK BUTTON (bottom-right) ---
+        const atkX = 700;
+        const atkY = 500;
+
+        const atkBg = this.add.circle(atkX, atkY, 45, 0xe94560, alpha)
+            .setDepth(31).setInteractive({ useHandCursor: true });
+        this.add.text(atkX, atkY, '⚔', {
+            fontSize: '30px', color: '#ffffff'
+        }).setOrigin(0.5).setDepth(32).setAlpha(0.8);
+
+        atkBg.on('pointerdown', () => { this.touchAttack = true; });
+        atkBg.on('pointerup', () => { this.touchAttack = false; });
+        atkBg.on('pointerout', () => { this.touchAttack = false; });
     }
 
     // Called by GameScene every frame to update the HUD values
