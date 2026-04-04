@@ -47,9 +47,14 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         // Which direction is the player facing? (used for attacks later)
         this.facing = 'down';
 
-        // Equipment (will be used in Phase 5)
+        // Equipment
         this.equippedWeapon = 'wooden_sword';
         this.equippedArmor = 'cloth_armor';
+
+        // --- COMBAT STATE ---
+        this.isAttacking = false;       // True during attack animation
+        this.invincible = false;        // True during invincibility frames after getting hit
+        this.invincibleTimer = 0;       // How long invincibility lasts
 
         // Store reference to the scene (we'll need it for various things)
         this.scene = scene;
@@ -71,6 +76,9 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     update() {
+        // Don't do anything if dead
+        if (this.isDead) return;
+
         // This runs every frame (60 times per second).
         // We check which keys are pressed and move accordingly.
 
@@ -114,11 +122,107 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         // The second argument 'true' means "if this animation is already playing,
         // don't restart it". Without this, the animation would reset every frame!
         if (velocityX !== 0 || velocityY !== 0) {
-            // We're moving! Play the walk animation for our direction.
             this.anims.play('player-walk-' + this.facing, true);
         } else {
-            // Standing still. Play the idle animation for our direction.
             this.anims.play('player-idle-' + this.facing, true);
         }
+
+        // --- INVINCIBILITY FLASH ---
+        // After getting hit, the player flashes for a short time to show
+        // they can't be hurt again yet (invincibility frames / "i-frames").
+        if (this.invincible) {
+            this.invincibleTimer -= 16; // ~16ms per frame at 60fps
+            this.setAlpha(Math.sin(Date.now() * 0.015) > 0 ? 0.3 : 1);
+            if (this.invincibleTimer <= 0) {
+                this.invincible = false;
+                this.setAlpha(1);
+            }
+        }
+    }
+
+    // --- TAKE DAMAGE ---
+    // Called when an enemy attacks the player.
+    // The player's armor reduces incoming damage.
+    takeDamage(amount) {
+        if (this.invincible) return; // Can't be hurt during i-frames
+
+        // Calculate damage after armor
+        const armorData = ARMOR[this.equippedArmor];
+        const armorDefense = armorData ? armorData.defense : 0;
+        const damage = Math.max(1, amount - armorDefense - this.defense);
+
+        this.hp -= damage;
+
+        // Show damage number floating up
+        const dmgText = this.scene.add.text(this.x, this.y - 10, '-' + damage, {
+            fontSize: '8px',
+            fontFamily: 'Press Start 2P',
+            color: '#ff0000',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(20);
+
+        this.scene.tweens.add({
+            targets: dmgText,
+            y: dmgText.y - 20,
+            alpha: 0,
+            duration: 800,
+            onComplete: () => dmgText.destroy()
+        });
+
+        // Start invincibility frames (500ms of protection)
+        this.invincible = true;
+        this.invincibleTimer = 500;
+
+        // Screen shake for impact feel!
+        this.scene.cameras.main.shake(100, 0.01);
+
+        // Check for death
+        if (this.hp <= 0) {
+            this.hp = 0;
+            this.die();
+        }
+    }
+
+    // --- DEATH ---
+    die() {
+        this.isDead = true;
+        this.setVelocity(0, 0);
+        this.body.enable = false;
+
+        // Big screen shake
+        this.scene.cameras.main.shake(300, 0.02);
+
+        // Red flash on camera
+        this.scene.cameras.main.flash(500, 255, 0, 0);
+
+        // Death spin + shrink effect
+        this.scene.tweens.add({
+            targets: this,
+            angle: 720,
+            scaleX: 0,
+            scaleY: 0,
+            alpha: 0,
+            duration: 800,
+            ease: 'Power2',
+            onComplete: () => {
+                // Show "You Died" screen after the animation
+                this.scene.showDeathScreen();
+            }
+        });
+    }
+
+    // Called by GameScene to respawn after the death screen
+    respawn() {
+        this.isDead = false;
+        this.hp = this.maxHP;
+        this.x = this.scene.currentArea.playerSpawn.x * 16;
+        this.y = this.scene.currentArea.playerSpawn.y * 16;
+        this.setScale(1);
+        this.setAngle(0);
+        this.setAlpha(1);
+        this.body.enable = true;
+        this.invincible = true;
+        this.invincibleTimer = 1500; // Extra long i-frames after respawn
     }
 }

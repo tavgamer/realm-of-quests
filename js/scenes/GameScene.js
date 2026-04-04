@@ -123,8 +123,47 @@ class GameScene extends Phaser.Scene {
         this.physics.add.collider(this.player, houseLayer);
 
         // --- LAUNCH THE HUD ---
+        // bringToTop ensures UIScene renders AFTER (on top of) GameScene
         this.scene.launch('UI');
+        this.scene.bringToTop('UI');
         this.uiScene = this.scene.get('UI');
+
+        // --- COMBAT SYSTEM ---
+        this.combatSystem = new CombatSystem(this);
+
+        // Space key for attacking
+        this.attackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+        // --- SPAWN ENEMIES ---
+        // Create a physics group to hold all enemies in this area
+        this.enemies = this.physics.add.group();
+
+        // Enemy spawn positions for Area 1 (away from the player spawn and NPCs)
+        const enemySpawns = [
+            { type: 'goblin', x: 20, y: 6 },
+            { type: 'goblin', x: 25, y: 10 },
+            { type: 'goblin', x: 12, y: 25 },
+            { type: 'slime', x: 32, y: 8 },
+            { type: 'slime', x: 18, y: 24 },
+            { type: 'slime', x: 6, y: 15 },
+        ];
+
+        enemySpawns.forEach(spawn => {
+            const enemy = new Enemy(
+                this,
+                spawn.x * tileSize,
+                spawn.y * tileSize,
+                spawn.type
+            );
+            enemy.target = this.player;  // Tell enemy who to chase
+            this.enemies.add(enemy);
+        });
+
+        // Enemies collide with walls, water, houses, and each other
+        this.physics.add.collider(this.enemies, treeLayer);
+        this.physics.add.collider(this.enemies, waterLayer);
+        this.physics.add.collider(this.enemies, houseLayer);
+        this.physics.add.collider(this.enemies, this.enemies);
 
         // --- AREA NAME POPUP ---
         // We show this in the UIScene since it has its own un-zoomed camera
@@ -201,8 +240,21 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    update() {
+    update(time, delta) {
         this.player.update();
+
+        // Don't process combat if player is dead
+        if (this.player.isDead) return;
+
+        // --- PLAYER ATTACK ---
+        if (Phaser.Input.Keyboard.JustDown(this.attackKey)) {
+            this.combatSystem.playerAttack(this.player, this.enemies);
+        }
+
+        // --- UPDATE ENEMIES ---
+        this.enemies.getChildren().forEach(enemy => {
+            enemy.update(time, delta);
+        });
 
         // Send player data to the UIScene HUD
         if (this.uiScene && this.uiScene.updateHUD) {
@@ -210,10 +262,85 @@ class GameScene extends Phaser.Scene {
                 hp: this.player.hp,
                 maxHP: this.player.maxHP,
                 level: this.player.level,
+                xp: this.player.xp,
                 gold: this.player.gold,
                 areaName: this.currentArea.name
             });
         }
+    }
+
+    // --- "YOU DIED!" SCREEN ---
+    // Shows a dark overlay with text and a Respawn button.
+    showDeathScreen() {
+        // Hide the HUD
+        this.scene.setVisible(false, 'UI');
+
+        // Dark overlay covering the whole camera view
+        const overlay = this.add.rectangle(
+            this.cameras.main.scrollX + 400,
+            this.cameras.main.scrollY + 300,
+            800, 600, 0x000000, 0.8
+        ).setDepth(50).setScrollFactor(0);
+
+        // "YOU DIED!" text
+        const diedText = this.add.text(400, 200, 'YOU DIED!', {
+            fontSize: '24px',
+            fontFamily: 'Press Start 2P',
+            color: '#e94560',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
+
+        // Pulsing animation on the text
+        this.tweens.add({
+            targets: diedText,
+            alpha: { from: 0.7, to: 1 },
+            scaleX: { from: 0.95, to: 1.05 },
+            scaleY: { from: 0.95, to: 1.05 },
+            duration: 800,
+            yoyo: true,
+            repeat: -1
+        });
+
+        // Stats text
+        const statsText = this.add.text(400, 270, `Level: ${this.player.level}  |  Gold: ${this.player.gold}`, {
+            fontSize: '10px',
+            fontFamily: 'Press Start 2P',
+            color: '#aaaaaa'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
+
+        // "RESPAWN" button
+        const respawnBg = this.add.rectangle(400, 340, 200, 45, 0xe94560)
+            .setDepth(51).setScrollFactor(0).setInteractive({ useHandCursor: true });
+        const respawnText = this.add.text(400, 340, 'RESPAWN', {
+            fontSize: '14px',
+            fontFamily: 'Press Start 2P',
+            color: '#ffffff'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(52);
+
+        // Hover effect
+        respawnBg.on('pointerover', () => {
+            respawnBg.setFillStyle(0xff6b81);
+        });
+        respawnBg.on('pointerout', () => {
+            respawnBg.setFillStyle(0xe94560);
+        });
+
+        // Click to respawn
+        respawnBg.on('pointerdown', () => {
+            // Remove ALL death screen elements
+            overlay.destroy();
+            diedText.destroy();
+            statsText.destroy();
+            respawnText.destroy();
+            respawnBg.destroy();
+            // Respawn the player
+            this.player.respawn();
+            // Show the HUD again
+            this.scene.setVisible(true, 'UI');
+            // Camera fade in
+            this.cameras.main.fadeIn(500);
+        });
     }
 
     // Helper to place a rectangle of tiles on a layer

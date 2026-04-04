@@ -18,10 +18,10 @@ class UIScene extends Phaser.Scene {
         // --- HEALTH BAR ---
         // A colored bar that shrinks as you lose health
 
-        // Background panel for the HUD (dark semi-transparent bar at the top)
+        // Background panel for the HUD
         this.hudBg = this.add.graphics();
-        this.hudBg.fillStyle(0x000000, 0.7);
-        this.hudBg.fillRoundedRect(10, 10, 300, 60, 8);
+        this.hudBg.fillStyle(0x000000, 0.75);
+        this.hudBg.fillRoundedRect(10, 10, 380, 60, 8);
 
         // Health bar background (dark red = "empty" health)
         this.healthBarBg = this.add.graphics();
@@ -56,6 +56,13 @@ class UIScene extends Phaser.Scene {
             fontSize: '12px',
             fontFamily: 'Press Start 2P',
             color: '#f39c12'  // Orange for gold
+        });
+
+        // --- XP (shows how much XP needed for next level) ---
+        this.xpText = this.add.text(270, 44, '', {
+            fontSize: '12px',
+            fontFamily: 'Press Start 2P',
+            color: '#3498db'
         });
 
         // --- AREA NAME (bottom center) ---
@@ -101,5 +108,13 @@ class UIScene extends Phaser.Scene {
         this.levelText.setText(`LVL ${playerData.level}`);
         this.goldText.setText(`Gold: ${playerData.gold}`);
         this.areaText.setText(playerData.areaName || '');
+
+        // Update XP display — shows "currentXP / xpNeededForNextLevel"
+        const currentLevelXP = LEVEL_CURVE[playerData.level].xpNeeded;
+        const nextLevel = Math.min(playerData.level + 1, MAX_LEVEL);
+        const nextLevelXP = LEVEL_CURVE[nextLevel].xpNeeded;
+        const xpProgress = playerData.xp - currentLevelXP;
+        const xpNeeded = nextLevelXP - currentLevelXP;
+        this.xpText.setText(`${xpProgress}/${xpNeeded}`);
     }
 }

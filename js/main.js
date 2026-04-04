@@ -12,6 +12,11 @@ const config = {
     height: 600,
     parent: 'game-container',  // The HTML div that holds the game
     pixelArt: true,  // This keeps pixel art crisp instead of blurry when scaled up
+    // Scale the game to fill the browser window while keeping the aspect ratio
+    scale: {
+        mode: Phaser.Scale.FIT,        // Fits inside the window, keeps aspect ratio, no cropping
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    },
     physics: {
         default: 'arcade',  // Arcade physics: simple rectangle collisions, gravity, velocity
         arcade: {

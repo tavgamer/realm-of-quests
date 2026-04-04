@@ -52,6 +52,20 @@ class BootScene extends Phaser.Scene {
             frameHeight: 32
         });
 
+        // Enemy spritesheets (same 3x4 format as player: 96x128, 32x32 frames)
+        this.load.spritesheet('enemy-goblin', 'assets/sprites/enemies/goblin.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+        this.load.spritesheet('enemy-slime', 'assets/sprites/enemies/slime.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+        this.load.spritesheet('enemy-wolf', 'assets/sprites/enemies/wolf.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+        this.load.spritesheet('enemy-bandit', 'assets/sprites/enemies/bandit.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+
         // Load the terrain tileset image (for reference / future use)
         this.load.image('terrain', 'assets/tilesets/terrain.png');
     }
@@ -249,6 +263,45 @@ class BootScene extends Phaser.Scene {
             frames: [{ key: 'npc-shopkeeper-sheet', frame: 1 }],
             frameRate: 1
         });
+
+        // --- ENEMY ANIMATIONS ---
+        // All enemies use the same 3x4 spritesheet layout as the player.
+        // We create walk animations for each enemy type and direction.
+        const enemyTypes = ['goblin', 'slime', 'wolf', 'bandit'];
+        for (const type of enemyTypes) {
+            const key = 'enemy-' + type;
+            // Walk animations
+            this.anims.create({
+                key: key + '-walk-down',
+                frames: this.anims.generateFrameNumbers(key, { start: 0, end: 2 }),
+                frameRate: 6,
+                repeat: -1
+            });
+            this.anims.create({
+                key: key + '-walk-left',
+                frames: this.anims.generateFrameNumbers(key, { start: 3, end: 5 }),
+                frameRate: 6,
+                repeat: -1
+            });
+            this.anims.create({
+                key: key + '-walk-right',
+                frames: this.anims.generateFrameNumbers(key, { start: 6, end: 8 }),
+                frameRate: 6,
+                repeat: -1
+            });
+            this.anims.create({
+                key: key + '-walk-up',
+                frames: this.anims.generateFrameNumbers(key, { start: 9, end: 11 }),
+                frameRate: 6,
+                repeat: -1
+            });
+            // Idle (standing still, facing down)
+            this.anims.create({
+                key: key + '-idle',
+                frames: [{ key: key, frame: 1 }],
+                frameRate: 1
+            });
+        }
 
         // All assets are loaded and animations are set up! Move to the Menu screen.
         this.scene.start('Menu');
