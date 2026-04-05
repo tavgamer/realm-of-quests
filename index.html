@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Realm of Quests</title>
 
-    <!-- Pixel art font -->
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Fonts: pixel font for titles, clean font for UI -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
 
     <!-- Styles -->
     <link rel="stylesheet" href="css/style.css">
@@ -14,35 +14,44 @@
 <body>
     <div id="game-container"></div>
 
+    <!-- Shown on mobile in portrait mode -->
+    <div id="landscape-prompt">
+        <div class="rotate-icon">📱</div>
+        <div>Rotate your device to landscape</div>
+        <div style="font-size: 14px; color: #888; margin-top: 10px;">for the best experience</div>
+    </div>
+
     <!-- Phaser 3 Game Engine (loaded from CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 
     <!-- Data files (no dependencies, load first) -->
     <script src="js/data/levelCurve.js"></script>
-    <script src="js/data/enemies.js"></script>
+    <script src="js/data/enemies.js?v=4"></script>
     <script src="js/data/weapons.js"></script>
     <script src="js/data/armor.js"></script>
-    <script src="js/data/npcs.js"></script>
-    <script src="js/data/quests.js"></script>
-    <script src="js/data/areas.js"></script>
+    <script src="js/data/npcs.js?v=4"></script>
+    <script src="js/data/quests.js?v=6"></script>
+    <script src="js/data/areas.js?v=2"></script>
 
     <!-- Utilities -->
     <script src="js/utils/helpers.js"></script>
 
     <!-- Systems (game logic) -->
     <script src="js/systems/CombatSystem.js?v=2"></script>
+    <script src="js/systems/QuestManager.js?v=5"></script>
 
     <!-- Entities (depend on data and systems) -->
-    <script src="js/entities/Player.js?v=3"></script>
-    <script src="js/entities/Enemy.js?v=2"></script>
+    <script src="js/entities/Player.js?v=10"></script>
+    <script src="js/entities/Enemy.js?v=6"></script>
 
     <!-- Scenes (depend on entities and data) -->
-    <script src="js/scenes/BootScene.js?v=2"></script>
-    <script src="js/scenes/MenuScene.js"></script>
-    <script src="js/scenes/GameScene.js?v=5"></script>
-    <script src="js/scenes/UIScene.js?v=5"></script>
+    <script src="js/scenes/BootScene.js?v=7"></script>
+    <script src="js/scenes/MenuScene.js?v=3"></script>
+    <script src="js/scenes/GameScene.js?v=21"></script>
+    <script src="js/scenes/DialogScene.js?v=5"></script>
+    <script src="js/scenes/UIScene.js?v=17"></script>
 
     <!-- Main game config (loads last, starts everything) -->
-    <script src="js/main.js"></script>
+    <script src="js/main.js?v=4"></script>
 </body>
 </html>

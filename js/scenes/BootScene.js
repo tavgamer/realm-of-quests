@@ -191,6 +191,116 @@ class BootScene extends Phaser.Scene {
         npc.generateTexture('npc', 16, 16);
         npc.destroy();
 
+        // --- TREASURE CHEST (16x16 pixel art) ---
+        const chest = this.make.graphics({ x: 0, y: 0, add: false });
+        // Chest body (brown wood)
+        chest.fillStyle(0x8B4513, 1);
+        chest.fillRect(2, 6, 12, 8);
+        // Chest lid (darker brown)
+        chest.fillStyle(0x654321, 1);
+        chest.fillRect(2, 4, 12, 3);
+        // Lid top curve
+        chest.fillStyle(0x654321, 1);
+        chest.fillRect(3, 3, 10, 1);
+        // Gold trim bands
+        chest.fillStyle(0xf1c40f, 1);
+        chest.fillRect(2, 7, 12, 1);   // Middle band
+        chest.fillRect(2, 13, 12, 1);  // Bottom edge
+        // Lock (gold square in center)
+        chest.fillStyle(0xffd700, 1);
+        chest.fillRect(7, 8, 2, 3);
+        // Keyhole
+        chest.fillStyle(0x333333, 1);
+        chest.fillRect(7, 9, 2, 1);
+        // Highlights
+        chest.fillStyle(0xa0522d, 1);
+        chest.fillRect(3, 8, 3, 2);
+        chest.generateTexture('chest', 16, 16);
+        chest.destroy();
+
+        // Opened chest (slightly different look)
+        const chestOpen = this.make.graphics({ x: 0, y: 0, add: false });
+        chestOpen.fillStyle(0x654321, 1);
+        chestOpen.fillRect(2, 3, 12, 3);   // Open lid tilted back
+        chestOpen.fillRect(3, 2, 10, 1);
+        chestOpen.fillStyle(0x8B4513, 1);
+        chestOpen.fillRect(2, 6, 12, 8);   // Chest body
+        chestOpen.fillStyle(0xf1c40f, 1);
+        chestOpen.fillRect(2, 7, 12, 1);
+        chestOpen.fillRect(2, 13, 12, 1);
+        // Gold inside!
+        chestOpen.fillStyle(0xffd700, 1);
+        chestOpen.fillRect(4, 8, 8, 4);
+        chestOpen.fillStyle(0xf39c12, 1);
+        chestOpen.fillRect(5, 9, 2, 2);
+        chestOpen.fillRect(9, 9, 2, 2);
+        chestOpen.generateTexture('chest-open', 16, 16);
+        chestOpen.destroy();
+
+        // --- UNDERWATER TILES ---
+        // Sea floor (dark blue-green sand)
+        const seaFloor = this.make.graphics({ x: 0, y: 0, add: false });
+        seaFloor.fillStyle(0x1a3a4a, 1);
+        seaFloor.fillRect(0, 0, 16, 16);
+        seaFloor.fillStyle(0x1e4050, 1);
+        seaFloor.fillRect(2, 4, 3, 2);
+        seaFloor.fillRect(9, 10, 3, 2);
+        seaFloor.fillStyle(0x163040, 1);
+        seaFloor.fillRect(6, 1, 2, 1);
+        seaFloor.fillRect(12, 7, 2, 1);
+        seaFloor.generateTexture('sea-floor', 16, 16);
+        seaFloor.destroy();
+
+        // Coral / underwater wall (blocks movement)
+        const coral = this.make.graphics({ x: 0, y: 0, add: false });
+        coral.fillStyle(0x0d2636, 1);
+        coral.fillRect(0, 0, 16, 16);
+        // Coral branches
+        coral.fillStyle(0xe74c3c, 1);
+        coral.fillRect(3, 4, 3, 8);
+        coral.fillStyle(0xf39c12, 1);
+        coral.fillRect(8, 2, 3, 10);
+        coral.fillStyle(0x2ecc71, 1);
+        coral.fillRect(12, 6, 2, 6);
+        // Coral tips
+        coral.fillStyle(0xff6b6b, 1);
+        coral.fillRect(3, 2, 3, 2);
+        coral.fillStyle(0xf5b041, 1);
+        coral.fillRect(8, 0, 3, 2);
+        coral.generateTexture('coral', 16, 16);
+        coral.destroy();
+
+        // Underwater path (lighter sandy path)
+        const seaPath = this.make.graphics({ x: 0, y: 0, add: false });
+        seaPath.fillStyle(0x2a5a6a, 1);
+        seaPath.fillRect(0, 0, 16, 16);
+        seaPath.fillStyle(0x306878, 1);
+        seaPath.fillRect(3, 5, 3, 2);
+        seaPath.fillRect(10, 10, 3, 2);
+        seaPath.generateTexture('sea-path', 16, 16);
+        seaPath.destroy();
+
+        // Underwater building (ancient ruins)
+        const ruin = this.make.graphics({ x: 0, y: 0, add: false });
+        // Stone base
+        ruin.fillStyle(0x4a6a7a, 1);
+        ruin.fillRect(1, 4, 14, 12);
+        // Columns
+        ruin.fillStyle(0x5a7a8a, 1);
+        ruin.fillRect(2, 2, 3, 14);
+        ruin.fillRect(11, 2, 3, 14);
+        // Top beam
+        ruin.fillStyle(0x5a7a8a, 1);
+        ruin.fillRect(1, 1, 14, 2);
+        // Dark doorway
+        ruin.fillStyle(0x1a3040, 1);
+        ruin.fillRect(6, 6, 4, 10);
+        // Glow inside
+        ruin.fillStyle(0x3498db, 0.5);
+        ruin.fillRect(7, 7, 2, 4);
+        ruin.generateTexture('ruin', 16, 16);
+        ruin.destroy();
+
         // --- PLAYER ANIMATIONS FROM SPRITESHEET ---
         // The spritesheet has 3 columns x 4 rows (12 frames total).
         // Row 0 (frames 0-2)  = walking DOWN  (facing camera)
@@ -302,6 +412,20 @@ class BootScene extends Phaser.Scene {
                 frameRate: 1
             });
         }
+
+        // Apply NEAREST filtering to game sprites (crispy pixel art)
+        // Text stays smooth because it's rendered separately
+        const pixelTextures = [
+            'grass', 'wall', 'water', 'path', 'house', 'npc',
+            'sea-floor', 'coral', 'sea-path', 'ruin',
+            'chest', 'chest-open',
+            'player-sheet', 'npc-elder-sheet', 'npc-shopkeeper-sheet',
+            'enemy-goblin', 'enemy-slime', 'enemy-wolf', 'enemy-bandit'
+        ];
+        pixelTextures.forEach(key => {
+            const tex = this.textures.get(key);
+            if (tex) tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+        });
 
         // All assets are loaded and animations are set up! Move to the Menu screen.
         this.scene.start('Menu');

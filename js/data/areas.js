@@ -6,28 +6,26 @@ const AREAS = {
         id: 'area1',
         name: 'Greenwood Village',
         requiredLevel: 1,
-        width: 40,   // Map width in tiles
-        height: 30,  // Map height in tiles
+        width: 80,   // Map width in tiles (was 40)
+        height: 60,  // Map height in tiles (was 30)
         enemies: ['goblin', 'slime'],
         npcs: ['npc_elder', 'npc_shopkeeper'],
         exits: [
-            { to: 'area2', x: 39, y: 15, direction: 'right' }
+            { to: 'area2', x: 79, y: 30, direction: 'right' }
         ],
-        playerSpawn: { x: 5, y: 15 }
+        playerSpawn: { x: 10, y: 30 }
     },
     area2: {
         id: 'area2',
-        name: 'Dark Forest',
+        name: 'Underwater City',
         requiredLevel: 3,
-        width: 40,
-        height: 30,
+        width: 70,
+        height: 50,
         enemies: ['wolf', 'bandit'],
-        npcs: ['npc_ranger'],
+        npcs: ['npc_sea_elder'],
         exits: [
-            { to: 'area1', x: 0, y: 15, direction: 'left' },
-            { to: 'area3', x: 39, y: 15, direction: 'right' }
+            { to: 'area1', x: 35, y: 2, direction: 'up' }
         ],
-        playerSpawn: { x: 2, y: 15 }
+        playerSpawn: { x: 35, y: 5 }
     }
-    // More areas will be added in Phase 6!
 };

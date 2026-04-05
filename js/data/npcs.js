@@ -8,7 +8,7 @@ const NPCS = {
         x: 8,   // Tile position
         y: 10,
         isShop: false,
-        quests: ['q1_kill_goblins', 'q2_find_amulet'],
+        quests: ['q1_kill_goblins', 'q2_kill_slimes', 'q_visit_brother'],
         color: 0xF39C12,  // Orange
         dialog: {
             greeting: 'Welcome, young hero! Our village needs your help.',
@@ -28,17 +28,17 @@ const NPCS = {
             noQuest: 'Come back when you have some gold!'
         }
     },
-    npc_ranger: {
-        name: 'Forest Ranger',
+    npc_sea_elder: {
+        name: 'Sea Elder',
         area: 'area2',
-        x: 10,
-        y: 12,
+        x: 35,
+        y: 25,
         isShop: false,
-        quests: ['q3_kill_wolves'],
-        color: 0x27AE60,  // Green
+        quests: ['q3_kill_wolves', 'q4_kill_bandits', 'q5_serpent_horde', 'q6_pirate_captain'],
+        color: 0x2980B9,  // Ocean blue
         dialog: {
-            greeting: 'The forest grows darker each day...',
-            noQuest: 'Stay alert in these woods, traveler.'
+            greeting: 'Welcome to the depths, surface dweller! My brother sent you?',
+            noQuest: 'The currents are calm for now. Rest, hero.'
         }
     }
 };

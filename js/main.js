@@ -7,24 +7,26 @@
 // - Which scenes to load (Boot -> Menu -> Game)
 // - Where to put the game canvas in the HTML page
 const config = {
-    type: Phaser.AUTO,  // AUTO means Phaser picks WebGL (fast) or Canvas (fallback)
-    width: 800,
-    height: 600,
-    parent: 'game-container',  // The HTML div that holds the game
-    pixelArt: true,  // This keeps pixel art crisp instead of blurry when scaled up
-    // Scale the game to fill the browser window while keeping the aspect ratio
+    type: Phaser.AUTO,
+    width: 1280,
+    height: 720,
+    parent: 'game-container',
+    // pixelArt is OFF so text renders smoothly.
+    // Sprite textures get NEAREST filtering manually in BootScene.
+    roundPixels: true,    // Snap sprites to whole pixels — prevents sub-pixel blur
+    antialias: true,      // Smooth text rendering
     scale: {
-        mode: Phaser.Scale.FIT,        // Fits inside the window, keeps aspect ratio, no cropping
+        mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
     },
     physics: {
-        default: 'arcade',  // Arcade physics: simple rectangle collisions, gravity, velocity
+        default: 'arcade',
         arcade: {
-            gravity: { y: 0 },  // No gravity (top-down game, not a platformer)
-            debug: false  // Set to true to see hitboxes (useful for debugging!)
+            gravity: { y: 0 },
+            debug: false
         }
     },
-    scene: [BootScene, MenuScene, GameScene, UIScene]  // Scenes load in this order
+    scene: [BootScene, MenuScene, GameScene, UIScene, DialogScene]
 };
 
 // Create the game! This one line starts everything.

@@ -15,9 +15,11 @@
 // Example: if player gets close → switch from PATROL to CHASE.
 
 class Enemy extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y, type) {
-        // Look up the enemy's spritesheet key (e.g., 'enemy-goblin')
-        const textureKey = 'enemy-' + type;
+    constructor(scene, x, y, type, difficultyMult) {
+        // Boss enemies can use a different sprite via spriteKey
+        const data = ENEMIES[type];
+        const spriteType = data.spriteKey || type;
+        const textureKey = 'enemy-' + spriteType;
         super(scene, x, y, textureKey, 1);
 
         scene.add.existing(this);
@@ -25,47 +27,65 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
 
         // Store the enemy type and its data from the config
         this.enemyType = type;
-        this.enemyData = ENEMIES[type];
+        this.enemyData = data;
 
-        // --- STATS (copied from the config so each enemy has its own values) ---
-        this.hp = this.enemyData.hp;
-        this.maxHP = this.enemyData.hp;
-        this.attackPower = this.enemyData.attack;
-        this.defensePower = this.enemyData.defense;
-        this.moveSpeed = this.enemyData.speed;
-        this.detectionRange = this.enemyData.detectionRange;
+        // Difficulty multiplier (later quests have stronger enemies)
+        const mult = difficultyMult || 1;
+
+        // --- STATS (scaled by difficulty) ---
+        this.hp = Math.round(data.hp * mult);
+        this.maxHP = this.hp;
+        this.attackPower = Math.round(data.attack * mult);
+        this.defensePower = Math.round(data.defense * mult);
+        this.moveSpeed = data.speed;
+        this.detectionRange = data.detectionRange;
 
         // --- PHYSICS ---
-        this.setScale(1);
+        const enemyScale = data.scale || 1;
+        this.setScale(enemyScale);
         this.body.setSize(18, 18);
         this.body.setOffset(7, 12);
-        this.setDepth(8);
+        this.setDepth(data.isBoss ? 9 : 8);
+
+        // --- BOSS VISUALS ---
+        this.isBoss = data.isBoss || false;
+        if (this.isBoss) {
+            this.setTint(0xff4444);  // Red tint for boss
+        }
 
         // --- AI STATE ---
-        this.state = 'PATROL';   // Start patrolling
-        this.stateTimer = 0;     // Timer for state-specific logic
+        this.state = 'PATROL';
+        this.stateTimer = 0;
 
-        // Patrol: pick a random point to walk toward
         this.patrolTargetX = x + Phaser.Math.Between(-60, 60);
         this.patrolTargetY = y + Phaser.Math.Between(-60, 60);
         this.patrolWaitTime = 0;
 
-        // Attack cooldown (enemy can't attack every frame)
         this.attackCooldown = 0;
-        this.attackRate = 1000; // milliseconds between attacks
+        this.attackRate = this.isBoss ? 800 : 1000;  // Boss attacks faster
 
-        // Hurt timer (brief invincibility after being hit)
         this.hurtTimer = 0;
-
-        // Reference to the scene's player (set by GameScene after creation)
         this.target = null;
 
-        // --- HEALTH BAR (drawn above the enemy) ---
+        // --- HEALTH BAR ---
         this.healthBar = scene.add.graphics();
         this.healthBar.setDepth(12);
 
-        // Play idle animation
-        this.anims.play(textureKey + '-idle');
+        // --- BOSS NAME TAG ---
+        if (this.isBoss) {
+            this.bossNameTag = scene.add.text(x, y - 30, data.name, {
+                fontSize: '8px',
+                fontFamily: 'Nunito',
+            fontStyle: 'bold',
+                color: '#ff4444',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5).setDepth(13);
+        }
+
+        // Play idle animation (use the sprite type, not enemy type)
+        this.animKey = 'enemy-' + spriteType;
+        this.anims.play(this.animKey + '-idle');
     }
 
     update(time, delta) {
@@ -128,6 +148,11 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
 
         // Update the health bar position
         this.updateHealthBar();
+
+        // Update boss name tag position
+        if (this.bossNameTag) {
+            this.bossNameTag.setPosition(this.x, this.y - 30);
+        }
 
         // Play the right animation based on movement
         this.updateAnimation();
@@ -214,22 +239,10 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     // Show a floating damage number
     showDamageNumber(amount) {
-        const dmgText = this.scene.add.text(this.x, this.y - 10, '-' + amount, {
-            fontSize: '8px',
-            fontFamily: 'Press Start 2P',
-            color: '#ff4444',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5).setDepth(20);
-
-        // Float up and fade out
-        this.scene.tweens.add({
-            targets: dmgText,
-            y: dmgText.y - 20,
-            alpha: 0,
-            duration: 800,
-            onComplete: () => dmgText.destroy()
-        });
+        const uiScene = this.scene.scene.get('UI');
+        if (uiScene && uiScene.showFloatingText) {
+            uiScene.showFloatingText(this.x, this.y - 10, '-' + amount, '#ff4444', 16, 800);
+        }
     }
 
     // --- DEATH ---
@@ -244,26 +257,24 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             this.target.gold += this.enemyData.goldDrop;
         }
 
-        // Show XP/gold gain text
-        const rewardText = this.scene.add.text(
-            this.x, this.y - 10,
-            '+' + this.enemyData.xpReward + ' XP  +' + this.enemyData.goldDrop + ' Gold',
-            {
-                fontSize: '6px',
-                fontFamily: 'Press Start 2P',
-                color: '#f1c40f',
-                stroke: '#000000',
-                strokeThickness: 2
-            }
-        ).setOrigin(0.5).setDepth(20);
+        // Notify quest manager about the kill
+        if (this.scene.questManager) {
+            this.scene.questManager.onEnemyKilled(
+                this.enemyType,
+                this.enemyData.xpReward,
+                this.enemyData.goldDrop
+            );
+        }
 
-        this.scene.tweens.add({
-            targets: rewardText,
-            y: rewardText.y - 25,
-            alpha: 0,
-            duration: 1200,
-            onComplete: () => rewardText.destroy()
-        });
+        // Show XP/gold gain text
+        const uiScene = this.scene.scene.get('UI');
+        if (uiScene && uiScene.showFloatingText) {
+            uiScene.showFloatingText(
+                this.x, this.y - 10,
+                '+' + this.enemyData.xpReward + ' XP  +' + this.enemyData.goldDrop + ' Gold',
+                '#f1c40f', 15, 1200
+            );
+        }
 
         // Death animation: flash white, spin, burst into particles, then remove
         // 1) Flash white
@@ -300,6 +311,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             ease: 'Power2',
             onComplete: () => {
                 this.healthBar.destroy();
+                if (this.bossNameTag) this.bossNameTag.destroy();
                 this.destroy();
             }
         });
@@ -311,10 +323,10 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
 
         if (this.hp >= this.maxHP || this.state === 'DEAD') return;
 
-        const barWidth = 24;
-        const barHeight = 3;
+        const barWidth = this.isBoss ? 40 : 24;
+        const barHeight = this.isBoss ? 5 : 3;
         const x = this.x - barWidth / 2;
-        const y = this.y - 18;
+        const y = this.y - (this.isBoss ? 28 : 18);
         const healthPercent = this.hp / this.maxHP;
 
         // Background (dark red)
@@ -334,7 +346,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     // --- ANIMATION ---
     updateAnimation() {
-        const key = 'enemy-' + this.enemyType;
+        const key = this.animKey;
         const vx = this.body.velocity.x;
         const vy = this.body.velocity.y;
 

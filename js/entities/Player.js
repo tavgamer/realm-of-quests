@@ -79,6 +79,13 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         // Don't do anything if dead
         if (this.isDead) return;
 
+        // Don't move during dialog or map
+        const uiScene = this.scene.scene.get('UI');
+        if (this.scene.dialogOpen || (uiScene && uiScene.mapOpen)) {
+            this.setVelocity(0, 0);
+            return;
+        }
+
         // This runs every frame (60 times per second).
         // We check which keys are pressed and move accordingly.
 
@@ -87,32 +94,43 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         let velocityY = 0;
 
         // Read touch input from the UIScene (mobile controls)
-        const uiScene = this.scene.scene.get('UI');
         const touchX = uiScene && uiScene.touchDirection ? uiScene.touchDirection.x : 0;
         const touchY = uiScene && uiScene.touchDirection ? uiScene.touchDirection.y : 0;
 
-        // Check horizontal movement (keyboard OR touch)
-        if (this.cursors.left.isDown || this.wasd.left.isDown || touchX < 0) {
+        // Check horizontal movement (keyboard OR joystick)
+        if (this.cursors.left.isDown || this.wasd.left.isDown) {
             velocityX = -this.moveSpeed;
             this.facing = 'left';
-        } else if (this.cursors.right.isDown || this.wasd.right.isDown || touchX > 0) {
+        } else if (this.cursors.right.isDown || this.wasd.right.isDown) {
             velocityX = this.moveSpeed;
             this.facing = 'right';
         }
 
-        // Check vertical movement (keyboard OR touch)
-        if (this.cursors.up.isDown || this.wasd.up.isDown || touchY < 0) {
+        // Check vertical movement (keyboard OR joystick)
+        if (this.cursors.up.isDown || this.wasd.up.isDown) {
             velocityY = -this.moveSpeed;
             this.facing = 'up';
-        } else if (this.cursors.down.isDown || this.wasd.down.isDown || touchY > 0) {
+        } else if (this.cursors.down.isDown || this.wasd.down.isDown) {
             velocityY = this.moveSpeed;
             this.facing = 'down';
         }
 
-        // If moving diagonally, normalize the speed so you don't go faster
-        // (Without this, moving diagonally would be ~1.4x faster than straight!)
-        if (velocityX !== 0 && velocityY !== 0) {
-            velocityX *= 0.707;  // 1/sqrt(2) ≈ 0.707
+        // Apply joystick input (analog — values between -1 and 1)
+        if (touchX !== 0 || touchY !== 0) {
+            velocityX = touchX * this.moveSpeed;
+            velocityY = touchY * this.moveSpeed;
+            // Set facing based on strongest direction
+            if (Math.abs(touchX) > Math.abs(touchY)) {
+                this.facing = touchX < 0 ? 'left' : 'right';
+            } else {
+                this.facing = touchY < 0 ? 'up' : 'down';
+            }
+        }
+
+        // If moving diagonally with keyboard, normalize speed
+        if ((this.cursors.left.isDown || this.wasd.left.isDown || this.cursors.right.isDown || this.wasd.right.isDown) &&
+            (this.cursors.up.isDown || this.wasd.up.isDown || this.cursors.down.isDown || this.wasd.down.isDown)) {
+            velocityX *= 0.707;
             velocityY *= 0.707;
         }
 
@@ -132,6 +150,9 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             this.anims.play('player-idle-' + this.facing, true);
         }
 
+        // --- CHECK FOR LEVEL UP ---
+        this.checkLevelUp();
+
         // --- INVINCIBILITY FLASH ---
         // After getting hit, the player flashes for a short time to show
         // they can't be hurt again yet (invincibility frames / "i-frames").
@@ -142,6 +163,63 @@ class Player extends Phaser.Physics.Arcade.Sprite {
                 this.invincible = false;
                 this.setAlpha(1);
             }
+        }
+    }
+
+    // --- LEVEL UP ---
+    // Checks if the player has enough XP to level up.
+    // If so, increases level and all stats from LEVEL_CURVE.
+    checkLevelUp() {
+        if (this.level >= MAX_LEVEL) return;
+
+        const nextLevel = this.level + 1;
+        const nextLevelData = LEVEL_CURVE[nextLevel];
+
+        if (this.xp >= nextLevelData.xpNeeded) {
+            this.level = nextLevel;
+            this.maxHP = nextLevelData.maxHP;
+            this.hp = this.maxHP; // Full heal on level up!
+            this.moveSpeed = nextLevelData.speed;
+            this.attackPower = nextLevelData.attack;
+
+            // Show level up effect
+            this.showLevelUpEffect();
+
+            // Check again in case we jumped multiple levels
+            this.checkLevelUp();
+        }
+    }
+
+    showLevelUpEffect() {
+        // Flash golden
+        this.setTintFill(0xffd700);
+        this.scene.time.delayedCall(200, () => this.clearTint());
+
+        // Camera flash
+        this.scene.cameras.main.flash(300, 255, 215, 0);
+
+        // Big "LEVEL UP!" text via UIScene
+        const uiScene = this.scene.scene.get('UI');
+        if (uiScene && uiScene.showFloatingText) {
+            uiScene.showFloatingText(this.x, this.y - 30, 'LEVEL UP!', '#ffd700', 24, 1800);
+        }
+
+        // Burst particles around player
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const particle = this.scene.add.rectangle(
+                this.x, this.y, 3, 3, 0xffd700
+            ).setDepth(20);
+
+            this.scene.tweens.add({
+                targets: particle,
+                x: this.x + Math.cos(angle) * 40,
+                y: this.y + Math.sin(angle) * 40,
+                alpha: 0,
+                duration: 600,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
         }
     }
 
@@ -159,21 +237,10 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.hp -= damage;
 
         // Show damage number floating up
-        const dmgText = this.scene.add.text(this.x, this.y - 10, '-' + damage, {
-            fontSize: '8px',
-            fontFamily: 'Press Start 2P',
-            color: '#ff0000',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5).setDepth(20);
-
-        this.scene.tweens.add({
-            targets: dmgText,
-            y: dmgText.y - 20,
-            alpha: 0,
-            duration: 800,
-            onComplete: () => dmgText.destroy()
-        });
+        const uiScene = this.scene.scene.get('UI');
+        if (uiScene && uiScene.showFloatingText) {
+            uiScene.showFloatingText(this.x, this.y - 10, '-' + damage, '#ff0000', 18, 800);
+        }
 
         // Start invincibility frames (500ms of protection)
         this.invincible = true;
