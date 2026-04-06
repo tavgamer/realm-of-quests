@@ -479,14 +479,6 @@ class GameScene extends Phaser.Scene {
             }
         });
 
-        // Admin panel (press ` backtick to open)
-        this.adminKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.BACKTICK);
-        this.adminKey.on('down', () => {
-            if (this.dialogOpen || this.player.isDead) return;
-            this.scene.launch('Admin', { player: this.player });
-            this.dialogOpen = true;
-        });
-
         // Guide arrow and "Press E" prompt are rendered in UIScene for crisp text
         this.guideState = { type: 'none' };
 
@@ -619,7 +611,7 @@ class GameScene extends Phaser.Scene {
         });
 
         // Safety: if dialogOpen is stuck but no dialog scene is running, reset it
-        if (this.dialogOpen && !this.scene.isActive('Dialog') && !this.scene.isActive('Shop') && !this.scene.isActive('Admin')) {
+        if (this.dialogOpen && !this.scene.isActive('Dialog') && !this.scene.isActive('Shop')) {
             this.dialogOpen = false;
         }
         // Same for inventoryOpen
