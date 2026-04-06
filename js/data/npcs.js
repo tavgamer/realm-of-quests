@@ -21,8 +21,9 @@ const NPCS = {
         x: 15,
         y: 8,
         isShop: true,
+        shopType: 'weapons',  // Sells weapons and basic armor
         quests: [],
-        color: 0xE67E22,  // Dark orange
+        color: 0xE67E22,
         dialog: {
             greeting: 'Welcome to my shop! Take a look at my wares.',
             noQuest: 'Come back when you have some gold!'
@@ -39,6 +40,20 @@ const NPCS = {
         dialog: {
             greeting: 'Welcome to the depths, surface dweller! My brother sent you?',
             noQuest: 'The currents are calm for now. Rest, hero.'
+        }
+    },
+    npc_sea_merchant: {
+        name: 'Deep Trader',
+        area: 'area2',
+        x: 40,
+        y: 28,
+        isShop: true,
+        shopType: 'potions',  // Sells potions and high-tier armor
+        quests: [],
+        color: 0x1ABC9C,
+        dialog: {
+            greeting: 'Treasures from the deep! Take a look...',
+            noQuest: 'Come back with more gold, surface dweller!'
         }
     }
 };

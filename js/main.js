@@ -26,7 +26,7 @@ const config = {
             debug: false
         }
     },
-    scene: [BootScene, MenuScene, GameScene, UIScene, DialogScene]
+    scene: [BootScene, MenuScene, GameScene, UIScene, DialogScene, InventoryScene, ShopScene, AdminScene]
 };
 
 // Create the game! This one line starts everything.

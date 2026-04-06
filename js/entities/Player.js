@@ -47,9 +47,20 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         // Which direction is the player facing? (used for attacks later)
         this.facing = 'down';
 
-        // Equipment
+        // Equipment & Inventory
+        // The inventory holds all items the player owns (weapon and armor IDs).
+        // equippedWeapon/equippedArmor point to which ones are active.
         this.equippedWeapon = 'wooden_sword';
         this.equippedArmor = 'cloth_armor';
+        this.inventory = ['wooden_sword', 'cloth_armor'];
+
+        // Potions — stored as counts (can carry multiple of each)
+        this.potions = {
+            health_potion: 0,
+            damage_potion: 0,
+            xp_potion: 0,
+            mega_health: 0
+        };
 
         // --- COMBAT STATE ---
         this.isAttacking = false;       // True during attack animation
@@ -73,15 +84,20 @@ class Player extends Phaser.Physics.Arcade.Sprite {
 
         // Depth sorting: make sure the player renders on top of ground tiles
         this.setDepth(10);
+
+        // Armor overlay — a small graphic drawn over the body, NOT the face.
+        // This sits on the same depth as the player, following them each frame.
+        this.armorOverlay = scene.add.graphics().setDepth(11);
+        this._lastArmorId = null;
     }
 
     update() {
         // Don't do anything if dead
         if (this.isDead) return;
 
-        // Don't move during dialog or map
+        // Don't move during dialog, map, or inventory
         const uiScene = this.scene.scene.get('UI');
-        if (this.scene.dialogOpen || (uiScene && uiScene.mapOpen)) {
+        if (this.scene.dialogOpen || this.scene.inventoryOpen || (uiScene && uiScene.mapOpen)) {
             this.setVelocity(0, 0);
             return;
         }
@@ -148,6 +164,44 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             this.anims.play('player-walk-' + this.facing, true);
         } else {
             this.anims.play('player-idle-' + this.facing, true);
+        }
+
+        // --- ARMOR OVERLAY ---
+        // Draw colored armor on the body, NOT the face.
+        // Helmet = top of head, Chest = torso, Legs = bottom.
+        // Cloth armor = no overlay (default outfit).
+        this.clearTint(); // Never full-body tint
+        if (this.armorOverlay) {
+            this.armorOverlay.clear();
+            if (this.equippedArmor !== 'cloth_armor') {
+                const armorData = ARMOR[this.equippedArmor];
+                if (armorData) {
+                    const ax = this.x;
+                    const ay = this.y;
+                    const c = armorData.color;
+                    // Helmet (top of head, small strip — NOT the face)
+                    this.armorOverlay.fillStyle(c, 0.6);
+                    this.armorOverlay.fillRect(ax - 5, ay - 14, 10, 4);
+                    // Chest / shirt area
+                    this.armorOverlay.fillStyle(c, 0.5);
+                    this.armorOverlay.fillRect(ax - 6, ay - 4, 12, 8);
+                    // Legs / pants
+                    this.armorOverlay.fillStyle(c, 0.35);
+                    this.armorOverlay.fillRect(ax - 4, ay + 4, 8, 5);
+                    // Shoulder pads for heavy armor
+                    if (armorData.defense >= 10) {
+                        this.armorOverlay.fillStyle(c, 0.7);
+                        this.armorOverlay.fillRect(ax - 8, ay - 5, 4, 4);
+                        this.armorOverlay.fillRect(ax + 4, ay - 5, 4, 4);
+                    }
+                }
+            }
+            // Hide overlay during invincibility flash
+            if (this.invincible) {
+                this.armorOverlay.setAlpha(Math.sin(Date.now() * 0.015) > 0 ? 0.3 : 1);
+            } else {
+                this.armorOverlay.setAlpha(1);
+            }
         }
 
         // --- CHECK FOR LEVEL UP ---
@@ -261,6 +315,8 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.isDead = true;
         this.setVelocity(0, 0);
         this.body.enable = false;
+        // Hide armor overlay during death
+        if (this.armorOverlay) this.armorOverlay.clear();
 
         // Big screen shake
         this.scene.cameras.main.shake(300, 0.02);

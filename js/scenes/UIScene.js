@@ -25,6 +25,12 @@ class UIScene extends Phaser.Scene {
         this.hudBg.lineStyle(1, 0x3a4a5a, 0.6);
         this.hudBg.strokeRoundedRect(12, 10, 340, 82, 10);
 
+        // Equipped items sub-panel (below main HUD)
+        this.hudBg.fillStyle(0x0d1117, 0.75);
+        this.hudBg.fillRoundedRect(12, 96, 340, 22, 6);
+        this.hudBg.lineStyle(1, 0x3a4a5a, 0.4);
+        this.hudBg.strokeRoundedRect(12, 96, 340, 22, 6);
+
         // --- HP BAR ---
         this.healthBarBg = this.add.graphics();
         this.healthBarFill = this.add.graphics();
@@ -50,6 +56,12 @@ class UIScene extends Phaser.Scene {
             fontSize: '15px', fontFamily: font, fontStyle: 'bold', color: '#f39c12'
         });
 
+        // --- EQUIPPED ITEMS (sub-panel below HUD) ---
+        this.equippedText = this.add.text(22, 99, '', {
+            fontSize: '12px', fontFamily: 'Nunito', fontStyle: 'bold',
+            color: '#aaaaaa'
+        });
+
         // --- XP BAR ---
         this.xpBarBg = this.add.graphics();
         this.xpBarFill = this.add.graphics();
@@ -71,7 +83,7 @@ class UIScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // --- CONTROLS HINT (bottom left, fades after a few seconds) ---
-        this.controlsHint = this.add.text(640, 675, 'WASD: move | SPACE: attack | E: talk | M: map', {
+        this.controlsHint = this.add.text(640, 675, 'WASD: move | SPACE: attack | E: talk | I: inventory | M: map', {
             fontSize: '14px',
             fontFamily: 'Nunito',
             fontStyle: 'bold',
@@ -103,6 +115,52 @@ class UIScene extends Phaser.Scene {
         }).setOrigin(1, 0);
 
         this.activeQuestId = null;
+
+        // === POTION BAR (right side) ===
+        this.potionSlots = [];
+        this.potionBg = this.add.graphics();
+        const potionList = ['health_potion', 'damage_potion', 'xp_potion', 'mega_health'];
+        const potionIcons = { health_potion: '❤', damage_potion: '⚔', xp_potion: '★', mega_health: '💖' };
+        const potionColors = { health_potion: '#e74c3c', damage_potion: '#e67e22', xp_potion: '#3498db', mega_health: '#ff1493' };
+        const slotX = 1230;
+        const slotStartY = 200;
+
+        potionList.forEach((potionId, i) => {
+            const sy = slotStartY + i * 55;
+            const potionData = POTIONS[potionId];
+
+            // Icon
+            const icon = this.add.text(slotX, sy, potionIcons[potionId], {
+                fontSize: '20px'
+            }).setOrigin(0.5).setDepth(5);
+
+            // Count text
+            const countText = this.add.text(slotX + 22, sy - 2, 'x0', {
+                fontSize: '13px', fontFamily: 'Nunito', fontStyle: 'bold',
+                color: potionColors[potionId]
+            }).setOrigin(0, 0.5).setDepth(5);
+
+            // USE button
+            const useBtn = this.add.text(slotX, sy + 18, 'USE', {
+                fontSize: '10px', fontFamily: 'Nunito', fontStyle: 'bold',
+                color: '#333333', backgroundColor: '#555555',
+                padding: { x: 8, y: 2 }
+            }).setOrigin(0.5).setDepth(5).setInteractive({ useHandCursor: true });
+
+            useBtn.on('pointerover', () => useBtn.setStyle({ backgroundColor: '#777777', color: '#ffffff' }));
+            useBtn.on('pointerout', () => {
+                const gameScene = this.scene.get('Game');
+                const count = gameScene && gameScene.player ? (gameScene.player.potions[potionId] || 0) : 0;
+                if (count > 0) {
+                    useBtn.setStyle({ backgroundColor: potionColors[potionId], color: '#ffffff' });
+                } else {
+                    useBtn.setStyle({ backgroundColor: '#555555', color: '#333333' });
+                }
+            });
+            useBtn.on('pointerdown', () => this.usePotion(potionId));
+
+            this.potionSlots.push({ potionId, icon, countText, useBtn });
+        });
 
         // --- NPC OVERLAYS (rendered here so text is crisp, not zoomed) ---
         this.npcLabels = [];    // Name labels
@@ -280,6 +338,31 @@ class UIScene extends Phaser.Scene {
         talkBg.on('pointerout', () => {
             this.touchTalk = false;
             talkBg.setFillStyle(0x3498db, btnAlpha);
+        });
+
+        // Inventory button (I) — above talk
+        const invBtnX = 1020, invBtnY = 490;
+        const invBtnBg = this.add.circle(invBtnX, invBtnY, 25, 0x9b59b6, btnAlpha)
+            .setDepth(30).setStrokeStyle(2, 0x9b59b6, 0.5).setInteractive();
+        this.add.text(invBtnX, invBtnY, 'I', {
+            fontSize: '14px', fontFamily: 'Nunito', fontStyle: 'bold', color: '#ffffff'
+        }).setOrigin(0.5).setDepth(31).setAlpha(0.8);
+
+        invBtnBg.on('pointerdown', () => {
+            const gameScene = this.scene.get('Game');
+            if (gameScene && !gameScene.dialogOpen && !gameScene.player.isDead) {
+                if (gameScene.inventoryOpen) {
+                    gameScene.scene.stop('Inventory');
+                    gameScene.inventoryOpen = false;
+                } else {
+                    gameScene.inventoryOpen = true;
+                    gameScene.scene.launch('Inventory', { player: gameScene.player });
+                }
+            }
+            invBtnBg.setFillStyle(0x9b59b6, 0.6);
+        });
+        invBtnBg.on('pointerup', () => {
+            invBtnBg.setFillStyle(0x9b59b6, btnAlpha);
         });
 
         // Map button (M) — smaller, above-right of talk
@@ -503,6 +586,13 @@ class UIScene extends Phaser.Scene {
         this.goldText.setText(`${playerData.gold}`);
         this.areaText.setText(playerData.areaName || '');
 
+        // Update equipped items display
+        if (playerData.equippedWeapon && playerData.equippedArmor) {
+            const wName = WEAPONS[playerData.equippedWeapon] ? WEAPONS[playerData.equippedWeapon].name : '';
+            const aName = ARMOR[playerData.equippedArmor] ? ARMOR[playerData.equippedArmor].name : '';
+            this.equippedText.setText(`⚔${wName}  🛡${aName}`);
+        }
+
         // --- XP BAR (thinner, blue) ---
         const xpBarX = 70, xpBarW = 200, xpBarH = 10, xpBarY = 65;
         const currentLevelXP = LEVEL_CURVE[playerData.level].xpNeeded;
@@ -550,13 +640,24 @@ class UIScene extends Phaser.Scene {
                     label.npcRef = npc;
                     this.npcLabels.push(label);
 
-                    // "!" marker for quest-giving NPCs
+                    // "!" marker for quest-giving NPCs, "$" for shop NPCs
                     if (npc.npcData.quests.length > 0) {
                         const marker = this.add.text(0, 0, '!', {
                             fontSize: '20px',
                             fontFamily: 'Nunito',
                             fontStyle: 'bold',
                             color: '#ffd700',
+                            stroke: '#000000',
+                            strokeThickness: 4
+                        }).setOrigin(0.5).setDepth(5);
+                        marker.npcRef = npc;
+                        this.npcMarkers.push(marker);
+                    } else if (npc.npcData.isShop) {
+                        const marker = this.add.text(0, 0, '$', {
+                            fontSize: '20px',
+                            fontFamily: 'Nunito',
+                            fontStyle: 'bold',
+                            color: '#f39c12',
                             stroke: '#000000',
                             strokeThickness: 4
                         }).setOrigin(0.5).setDepth(5);
@@ -653,5 +754,111 @@ class UIScene extends Phaser.Scene {
                 this.questTrackerIcon.setText('\u2694').setVisible(true);
             }
         }
+
+        // Update potion counts and button states
+        if (this.potionSlots) {
+            const gameScene = this.scene.get('Game');
+            const player = gameScene ? gameScene.player : null;
+            const potionColors = { health_potion: '#e74c3c', damage_potion: '#e67e22', xp_potion: '#3498db', mega_health: '#ff1493' };
+
+            // Draw potion panel background
+            this.potionBg.clear();
+            this.potionBg.fillStyle(0x0d1117, 0.75);
+            this.potionBg.fillRoundedRect(1195, 185, 80, 225, 8);
+            this.potionBg.lineStyle(1, 0x3a4a5a, 0.4);
+            this.potionBg.strokeRoundedRect(1195, 185, 80, 225, 8);
+
+            this.potionSlots.forEach(slot => {
+                const count = player ? (player.potions[slot.potionId] || 0) : 0;
+                slot.countText.setText(`x${count}`);
+                if (count > 0) {
+                    slot.icon.setAlpha(1);
+                    slot.useBtn.setStyle({ backgroundColor: potionColors[slot.potionId], color: '#ffffff' });
+                } else {
+                    slot.icon.setAlpha(0.3);
+                    slot.useBtn.setStyle({ backgroundColor: '#333333', color: '#555555' });
+                }
+            });
+        }
+    }
+
+    // Use a potion — applies effect + shows visual
+    usePotion(potionId) {
+        const gameScene = this.scene.get('Game');
+        if (!gameScene || !gameScene.player) return;
+        const player = gameScene.player;
+        if (!player.potions[potionId] || player.potions[potionId] <= 0) return;
+
+        // Don't use potions while dead or in menus
+        if (player.isDead || gameScene.dialogOpen || gameScene.inventoryOpen) return;
+
+        const potionData = POTIONS[potionId];
+        player.potions[potionId]--;
+
+        let floatText = '';
+        let floatColor = '#ffffff';
+        let effectColor = potionData.color;
+
+        if (potionData.effect === 'heal') {
+            player.hp = Math.min(player.hp + potionData.value, player.maxHP);
+            floatText = `+${potionData.value} HP!`;
+            floatColor = '#e74c3c';
+        } else if (potionData.effect === 'full_heal') {
+            player.hp = player.maxHP;
+            floatText = 'Full HP!';
+            floatColor = '#ff1493';
+        } else if (potionData.effect === 'damage_boost') {
+            player.attackPower += potionData.value;
+            floatText = `+${potionData.value} ATK (30s)!`;
+            floatColor = '#e67e22';
+            // Remove boost after duration
+            gameScene.time.delayedCall(potionData.duration, () => {
+                player.attackPower = Math.max(0, player.attackPower - potionData.value);
+                this.showFloatingText(player.x, player.y - 20, 'ATK boost ended', '#888888', 14, 1000);
+            });
+        } else if (potionData.effect === 'xp') {
+            player.xp += potionData.value;
+            floatText = `+${potionData.value} XP!`;
+            floatColor = '#3498db';
+        }
+
+        // Show floating text
+        this.showFloatingText(player.x, player.y - 20, floatText, floatColor, 20, 1200);
+
+        // Visual effect — colored ring burst around player
+        const cam = gameScene.cameras.main;
+        const sx = (player.x - cam.worldView.centerX) * cam.zoom + cam.width / 2;
+        const sy = (player.y - cam.worldView.centerY) * cam.zoom + cam.height / 2;
+
+        // Ring effect
+        const ring = this.add.circle(sx, sy, 5, effectColor, 0.8).setDepth(30);
+        this.tweens.add({
+            targets: ring,
+            scaleX: 6, scaleY: 6, alpha: 0,
+            duration: 500,
+            ease: 'Power2',
+            onComplete: () => ring.destroy()
+        });
+
+        // Sparkle particles in the potion color
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const particle = this.add.rectangle(sx, sy, 3, 3, effectColor).setDepth(30);
+            this.tweens.add({
+                targets: particle,
+                x: sx + Math.cos(angle) * 35,
+                y: sy + Math.sin(angle) * 35,
+                alpha: 0,
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+
+        // Camera flash in potion color
+        const r = (effectColor >> 16) & 0xff;
+        const g = (effectColor >> 8) & 0xff;
+        const b = effectColor & 0xff;
+        gameScene.cameras.main.flash(200, r, g, b, true);
     }
 }

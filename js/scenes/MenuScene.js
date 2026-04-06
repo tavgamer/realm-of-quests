@@ -129,7 +129,7 @@ class MenuScene extends Phaser.Scene {
             strokeThickness: 2
         }).setOrigin(0.5);
 
-        this.add.text(640, 555, 'SPACE: attack  |  E: talk  |  M: map', {
+        this.add.text(640, 555, 'SPACE: attack  |  E: talk  |  I: inventory  |  M: map', {
             fontSize: '12px',
             fontFamily: 'Press Start 2P',
             color: '#7a7a8e',
@@ -138,7 +138,7 @@ class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // --- VERSION ---
-        this.add.text(1260, 700, 'v0.4', {
+        this.add.text(1260, 700, 'v0.5', {
             fontSize: '10px',
             fontFamily: 'Press Start 2P',
             color: '#3a3a4a'

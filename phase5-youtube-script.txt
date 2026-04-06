@@ -1,0 +1,213 @@
+REALM OF QUESTS — Phase 5 YouTube Script
+==========================================
+Title: "I Added SHOPS, POTIONS, and UNIQUE WEAPONS to My RPG Game!"
+Duration: ~3-4 minutes
+
+---
+
+[INTRO — 0:00-0:15]
+(Quick cuts: shop screen, buying Holy Sword, fire blade sparks, potion orange burst, armor changing)
+
+"Last time I added quests and a boss fight. But there was nothing to spend your gold on. So today... shops, an inventory system, potions, and every single weapon looks completely different now. Let me show you."
+
+---
+
+[SEGMENT 1: GRAPHICS UPGRADED — UNIQUE WEAPONS — 0:15-0:55]
+(Equip Wooden Sword, attack — short brown blade)
+
+"Let's start with the biggest visual change. Every weapon in the game now has its own unique shape and special effects."
+
+(Switch to Iron Sword, attack — classic silver blade with shine)
+
+"Iron Sword — classic look with a shine line down the blade."
+
+(Switch to Steel Sword, attack — broad blade, white sparks fly)
+
+"Steel Sword — wider, broader, and you get these metallic sparks on every swing."
+
+(Switch to Shadow Dagger, attack — short dark blade, dark smoke rises)
+
+"Shadow Dagger — short, fast, and it leaves behind dark smoke."
+
+(Switch to Magic Staff, attack — long staff with glowing orb, purple particles)
+
+"Magic Staff — glowing purple orb on top, magic particles everywhere."
+
+(Switch to Fire Blade, attack — wavy flame shape, fire sparks red/orange/yellow)
+
+"Fire Blade — the blade is literally shaped like a flame. And look at those sparks. Red, orange, yellow flying everywhere."
+
+(Switch to Holy Sword, attack — grand golden blade, golden light burst + sparkles)
+
+"And the Holy Sword. Golden explosion. Every. Single. Swing."
+
+---
+
+[SEGMENT 2: ARMOR VISUALS — 0:55-1:15]
+(Show player in cloth armor — normal look)
+
+"Armor shows on your character now too. But here's what's cool — it only changes your body, NOT your face."
+
+(Equip Leather Armor — brown on torso/legs/helmet)
+
+"Leather Armor — brown tint on the body."
+
+(Equip Chainmail — silver, shoulder pads appear)
+
+"Chainmail — silver, and now you get SHOULDER PADS."
+
+(Equip Plate Armor — dark steel, shoulder pads)
+
+"Plate Armor — dark steel."
+
+(Equip Enchanted Plate — glowing blue, shoulder pads)
+
+"Enchanted Plate — glowing blue. This is the best armor in the game."
+
+---
+
+[SEGMENT 3: THE SHOP — 1:15-1:50]
+(Walk to Shopkeeper in area1, "Press E" and "$" icon visible)
+
+"See that dollar sign? That's the Shopkeeper. Walk up and press E."
+
+(Open shop — solid black background, all weapons and armor displayed)
+
+"Full shop screen. Every weapon, every armor piece, with damage, defense, and prices."
+
+(Show prices — Iron Sword 100g, Holy Sword 1000g)
+
+"Iron Sword is 100 gold. But the Holy Sword? A THOUSAND gold. You're gonna need to grind."
+
+(Buy Iron Sword — "Bought Iron Sword!" — auto-equips)
+
+"Buy something and it auto-equips if it's better than what you have."
+
+(Press E to close, show updated weapon on HUD)
+
+"Your equipped gear shows on the HUD now too."
+
+---
+
+[SEGMENT 4: INVENTORY — 1:50-2:10]
+(Press I, show inventory screen)
+
+"Press I for your inventory. Your stats on the left, equipped items in the center, and everything you own at the bottom."
+
+(Click EQUIP on a different weapon)
+
+"Own multiple weapons? Click EQUIP to switch anytime. Stuff you don't own yet shows greyed out so you know what to save up for."
+
+(Press I to close)
+
+---
+
+[SEGMENT 5: AREA 2 — DEEP TRADER & POTIONS — 2:10-2:55]
+(Teleport to area2, show the glowing green portal briefly)
+
+"Area 2 has a new NPC — the Deep Trader."
+
+(Walk to teal Deep Trader with "$" above head, press E)
+
+"And he sells something completely different from the area 1 shop."
+
+(Show potions section — Health Potion, Damage Potion, XP Potion, Mega Health)
+
+"POTIONS. Health Potion for 30 gold, Damage Potion for 60, XP Potion for 80, and Mega Health for 100."
+
+(Buy 3 health potions and 2 damage potions, show counts going up)
+
+"Buy them and they go into your potion inventory. You don't use them right away — YOU decide when."
+
+(Close shop, show potion bar on right side of screen with counts)
+
+"See the right side? That's your potion bar. Icons, counts, and USE buttons."
+
+(Click USE on Health Potion — RED ring burst + red camera flash + "+50 HP!" text)
+
+"Health Potion — red burst, HP restored."
+
+(Click USE on Damage Potion — ORANGE ring burst + orange camera flash + "+10 ATK!" text)
+
+"Damage Potion — ORANGE explosion, plus 10 attack for 30 seconds. Use it right before a boss fight."
+
+(Click USE on XP Potion — BLUE ring burst)
+
+"XP Potion — instant 50 XP."
+
+---
+
+[SEGMENT 6: THE PORTAL — 2:55-3:10]
+(Walk to green glowing pool in area2)
+
+"And getting back from the Underwater City is way easier now. See this glowing green pool?"
+
+(Show pulsing green border, sparkle particles rising, "Portal to Surface" text floating)
+
+"Walk into it and you're back in Greenwood Village. No more walking to the edge of the map."
+
+(Step in, green fade, appear in area1)
+
+---
+
+[SEGMENT 7: TOUGHER ENEMIES — 3:10-3:25]
+(Fight goblins, take hits, HP drops fast)
+
+"Oh and one more thing — enemies got WAY harder. Goblins went from 20 HP to 35. Skeletons hit for 10 damage now instead of 6."
+
+(Show player getting low HP, use a Health Potion mid-combat — red burst)
+
+"You actually NEED the shop and potions now. This isn't optional."
+
+---
+
+[OUTRO — 3:25-3:45]
+(Gameplay montage: shopping, equipping Holy Sword, golden explosions, using potions, armor changing, portal teleport)
+
+"Phase 5 — shops, inventory, potions, 7 unique weapons with special effects, armor that shows on your character, a new NPC, and a portal home. The gold you earn finally MEANS something."
+
+"Link to play is in the description. Subscribe if you want to see Phase 6. Peace."
+
+---
+
+YOUTUBE DETAILS
+===============
+
+TITLE:
+I Added SHOPS, POTIONS, and UNIQUE WEAPONS to My RPG Game!
+
+DESCRIPTION:
+I built a full shop and inventory system for my browser RPG! Every weapon has a unique design with special particle effects, armor shows on your character, and there's a potion system with visual effects. Built with Phaser 3 and JavaScript.
+
+Play it: https://tavgamer.github.io/realm-of-quests/
+GitHub: https://github.com/tavgamer/realm-of-quests
+
+What's new in Phase 5:
+- Shop system (2 shops — area 1 + area 2)
+- Full inventory screen (press I)
+- 7 unique weapon designs with special effects
+- Fire Blade shoots fire sparks
+- Holy Sword creates golden explosions
+- Magic Staff spawns purple orbs
+- Shadow Dagger leaves dark smoke
+- Armor visuals (helmet, chest, legs, shoulder pads)
+- 4 potions: Health, Damage Boost, XP, Mega Health
+- Potion bar with USE buttons + visual effects
+- Deep Trader NPC in Underwater City
+- Glowing portal pool to teleport home
+- Tougher enemies + higher item prices
+- Admin panel for testing (press `)
+
+Previous phases:
+Phase 1-2: Movement + Combat
+Phase 3-4: Quests, Boss Fight, Underwater City
+
+#GameDev #IndieGame #JavaScript #Phaser3 #RPG #BrowserGame #ShopSystem #Inventory
+
+TAGS:
+game development, indie game, javascript game, phaser 3, rpg game, browser game, shop system, inventory system, potions, weapon effects, particle effects, pixel art, game dev, making a game, how to make a game, web game, html5 game, unique weapons, armor system, fire sword, holy sword, magic staff, potion effects
+
+THUMBNAIL TEXT IDEAS:
+- "SHOPS & POTIONS!" with Fire Blade sparks in background
+- Holy Sword golden explosion with "7 UNIQUE WEAPONS" text
+- Split screen: before (wooden sword) vs after (Holy Sword with particles)

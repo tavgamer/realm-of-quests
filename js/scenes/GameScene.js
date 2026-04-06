@@ -20,6 +20,8 @@ class GameScene extends Phaser.Scene {
         // Carry over player stats and quest states from previous area
         this.savedPlayerStats = data.playerStats || null;
         this.savedQuestStates = data.questStates || null;
+        // Reset teleport flag (scene instance persists between restarts!)
+        this._teleporting = false;
     }
 
     create() {
@@ -116,6 +118,63 @@ class GameScene extends Phaser.Scene {
         } else {
             drawWater(12, 10, 6, 4);  // Deep pool 1
             drawWater(52, 35, 4, 3);  // Deep pool 2
+        }
+
+        // Area2 portal glow on the top-left pool
+        if (isUnderwater && this.waterZones.length > 0) {
+            const portal = this.waterZones[0]; // First pool = the portal
+            // Green glow ring to signal "this is special"
+            const portalGfx = this.add.graphics().setDepth(3);
+            portalGfx.lineStyle(3, 0x00ff88, 0.6);
+            portalGfx.strokeRoundedRect(portal.x - 4, portal.y - 4, portal.w + 8, portal.h + 8, 8);
+            // Inner glow
+            portalGfx.fillStyle(0x00ff88, 0.15);
+            portalGfx.fillRoundedRect(portal.x, portal.y, portal.w, portal.h, 4);
+            // Pulsing animation
+            this.tweens.add({
+                targets: portalGfx,
+                alpha: { from: 1, to: 0.3 },
+                duration: 1200,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            // "Portal" label
+            const portalLabel = this.add.text(
+                portal.x + portal.w / 2, portal.y - 8,
+                'Portal to Surface', {
+                    fontSize: '8px', fontFamily: 'Nunito', fontStyle: 'bold',
+                    color: '#00ff88', stroke: '#000000', strokeThickness: 2
+                }
+            ).setOrigin(0.5).setDepth(7);
+            this.tweens.add({
+                targets: portalLabel,
+                y: portalLabel.y - 4,
+                duration: 1500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            // Sparkle particles around portal
+            for (let i = 0; i < 8; i++) {
+                const sparkle = this.add.circle(
+                    portal.x + Phaser.Math.Between(5, portal.w - 5),
+                    portal.y + Phaser.Math.Between(5, portal.h - 5),
+                    2, 0x00ff88, 0.8
+                ).setDepth(3);
+                this.tweens.add({
+                    targets: sparkle,
+                    y: sparkle.y - Phaser.Math.Between(15, 30),
+                    alpha: 0,
+                    duration: Phaser.Math.Between(1500, 3000),
+                    repeat: -1,
+                    delay: Phaser.Math.Between(0, 2000),
+                    onRepeat: () => {
+                        sparkle.x = portal.x + Phaser.Math.Between(5, portal.w - 5);
+                        sparkle.y = portal.y + Phaser.Math.Between(5, portal.h - 5);
+                    }
+                });
+            }
         }
 
         // Animated water ripples
@@ -362,6 +421,10 @@ class GameScene extends Phaser.Scene {
             this.player.moveSpeed = s.moveSpeed;
             this.player.attackPower = s.attackPower;
             this.player.defense = s.defense;
+            if (s.equippedWeapon) this.player.equippedWeapon = s.equippedWeapon;
+            if (s.equippedArmor) this.player.equippedArmor = s.equippedArmor;
+            if (s.inventory) this.player.inventory = [...s.inventory];
+            if (s.potions) this.player.potions = { ...s.potions };
         }
 
         // --- CAMERA ---
@@ -401,6 +464,28 @@ class GameScene extends Phaser.Scene {
         this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
         this.dialogOpen = false;
         this.dialogCooldown = 0;
+
+        // I key for inventory
+        this.inventoryOpen = false;
+        this.inventoryKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
+        this.inventoryKey.on('down', () => {
+            if (this.dialogOpen || this.player.isDead) return;
+            if (this.inventoryOpen) {
+                this.scene.stop('Inventory');
+                this.inventoryOpen = false;
+            } else {
+                this.inventoryOpen = true;
+                this.scene.launch('Inventory', { player: this.player });
+            }
+        });
+
+        // Admin panel (press ` backtick to open)
+        this.adminKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.BACKTICK);
+        this.adminKey.on('down', () => {
+            if (this.dialogOpen || this.player.isDead) return;
+            this.scene.launch('Admin', { player: this.player });
+            this.dialogOpen = true;
+        });
 
         // Guide arrow and "Press E" prompt are rendered in UIScene for crisp text
         this.guideState = { type: 'none' };
@@ -466,11 +551,17 @@ class GameScene extends Phaser.Scene {
         const NPC_TEXTURES = {
             'npc_elder': 'npc-elder-sheet',
             'npc_shopkeeper': 'npc-shopkeeper-sheet',
-            'npc_sea_elder': 'npc'  // Uses generic NPC sprite (blue tint applied below)
+            'npc_sea_elder': 'npc',
+            'npc_sea_merchant': 'npc'
         };
         const NPC_ANIMS = {
             'npc_elder': 'npc-elder-idle',
             'npc_shopkeeper': 'npc-shopkeeper-idle'
+        };
+        // Tints for NPCs without unique spritesheets
+        const NPC_TINTS = {
+            'npc_sea_elder': 0x3498db,
+            'npc_sea_merchant': 0x1ABC9C
         };
         this.npcs = [];
         for (const npcId in NPCS) {
@@ -487,9 +578,9 @@ class GameScene extends Phaser.Scene {
                 if (NPC_ANIMS[npcId]) {
                     npc.anims.play(NPC_ANIMS[npcId]);
                 }
-                // Tint Sea Elder blue
-                if (npcId === 'npc_sea_elder') {
-                    npc.setTint(0x3498db);
+                // Apply tint if defined
+                if (NPC_TINTS[npcId]) {
+                    npc.setTint(NPC_TINTS[npcId]);
                 }
 
                 this.physics.add.collider(this.player, npc);
@@ -527,6 +618,15 @@ class GameScene extends Phaser.Scene {
             enemy.update(time, delta);
         });
 
+        // Safety: if dialogOpen is stuck but no dialog scene is running, reset it
+        if (this.dialogOpen && !this.scene.isActive('Dialog') && !this.scene.isActive('Shop') && !this.scene.isActive('Admin')) {
+            this.dialogOpen = false;
+        }
+        // Same for inventoryOpen
+        if (this.inventoryOpen && !this.scene.isActive('Inventory')) {
+            this.inventoryOpen = false;
+        }
+
         // --- CHECK POND TELEPORT (hidden entrance to Underwater City) ---
         this.checkPondTeleport();
 
@@ -541,7 +641,9 @@ class GameScene extends Phaser.Scene {
                 level: this.player.level,
                 xp: this.player.xp,
                 gold: this.player.gold,
-                areaName: this.currentArea.name
+                areaName: this.currentArea.name,
+                equippedWeapon: this.player.equippedWeapon,
+                equippedArmor: this.player.equippedArmor
             });
         }
     }
@@ -669,38 +771,53 @@ class GameScene extends Phaser.Scene {
         // Reset guide state
         this.guideState = { type: 'none' };
 
-        const hasActiveQuest = this.questManager.getActiveQuest() !== null;
-        if (hasActiveQuest || this.dialogOpen) return;
+        if (this.dialogOpen) return;
 
-        // Find the NPC that has an available quest
-        let questNpcId = null;
+        // First: check if the player is near ANY NPC (quest giver, shop, or otherwise)
+        // This shows "Press E" for ALL NPCs, not just quest givers
+        let nearestNpc = null;
+        let nearestDist = Infinity;
         for (const npcId in NPCS) {
             const npcData = NPCS[npcId];
             if (npcData.area !== this.currentAreaId) continue;
-            const available = this.questManager.getAvailableQuests(npcId);
-            if (available.length > 0) {
-                questNpcId = npcId;
-                break;
+            const npcX = npcData.x * tileSize;
+            const npcY = npcData.y * tileSize;
+            const dist = distanceBetween(this.player.x, this.player.y, npcX, npcY);
+            if (dist < promptRange && dist < nearestDist) {
+                nearestDist = dist;
+                nearestNpc = npcData;
             }
         }
 
-        if (!questNpcId) return;
-
-        const npcData = NPCS[questNpcId];
-        const npcX = npcData.x * tileSize;
-        const npcY = npcData.y * tileSize;
-        const dist = distanceBetween(this.player.x, this.player.y, npcX, npcY);
-
-        if (dist < promptRange) {
+        if (nearestNpc) {
+            const npcX = nearestNpc.x * tileSize;
+            const npcY = nearestNpc.y * tileSize;
             this.guideState = { type: 'prompt', worldX: npcX, worldY: npcY - 28 };
-        } else {
-            const angle = Math.atan2(npcY - this.player.y, npcX - this.player.x);
-            this.guideState = {
-                type: 'arrow',
-                worldX: this.player.x + Math.cos(angle) * 35,
-                worldY: this.player.y + Math.sin(angle) * 35,
-                angle: angle
-            };
+            return;
+        }
+
+        // Second: if no NPC is nearby and there's no active quest, show guide arrow
+        const hasActiveQuest = this.questManager.getActiveQuest() !== null;
+        if (hasActiveQuest) return;
+
+        // Find the NPC that has an available quest to point toward
+        for (const npcId in NPCS) {
+            const npcData = NPCS[npcId];
+            if (npcData.area !== this.currentAreaId) continue;
+            if (npcData.isShop) continue; // Don't point arrows at shops
+            const available = this.questManager.getAvailableQuests(npcId);
+            if (available.length > 0) {
+                const npcX = npcData.x * tileSize;
+                const npcY = npcData.y * tileSize;
+                const angle = Math.atan2(npcY - this.player.y, npcX - this.player.x);
+                this.guideState = {
+                    type: 'arrow',
+                    worldX: this.player.x + Math.cos(angle) * 35,
+                    worldY: this.player.y + Math.sin(angle) * 35,
+                    angle: angle
+                };
+                return;
+            }
         }
     }
 
@@ -729,6 +846,16 @@ class GameScene extends Phaser.Scene {
     openNPCDialog(npcId, npcData) {
         this.dialogOpen = true;
         this.player.setVelocity(0, 0);
+
+        // If this NPC is a shop, open the shop scene instead of dialog
+        if (npcData.isShop) {
+            this.scene.launch('Shop', {
+                player: this.player,
+                shopType: npcData.shopType || 'weapons',
+                npcName: npcData.name
+            });
+            return;
+        }
 
         // Check if NPC has an available quest
         const availableQuests = this.questManager.getAvailableQuests(npcId);
@@ -886,7 +1013,9 @@ class GameScene extends Phaser.Scene {
 
     // Check if player stepped into teleport zones
     checkPondTeleport() {
-        if (this.dialogOpen) return;
+        // Don't teleport if already teleporting or in a menu
+        if (this._teleporting) return;
+        if (this.dialogOpen || this.inventoryOpen) return;
 
         const tileSize = 16;
         const px = Math.floor(this.player.x / tileSize);
@@ -911,9 +1040,10 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Area 2: walk to top border to return to Area 1
+        // Area 2: step into the portal pool to return to area1
+        // Water drawn at drawWater(12, 10, 6, 4) = tiles 12-17 x, 10-13 y
         if (this.currentAreaId === 'area2') {
-            if (py <= 3) {
+            if (px >= 12 && px <= 17 && py >= 10 && py <= 13) {
                 this.teleportToArea('area1');
             }
         }
@@ -943,7 +1073,11 @@ class GameScene extends Phaser.Scene {
                 hp: this.player.hp,
                 moveSpeed: this.player.moveSpeed,
                 attackPower: this.player.attackPower,
-                defense: this.player.defense
+                defense: this.player.defense,
+                equippedWeapon: this.player.equippedWeapon,
+                equippedArmor: this.player.equippedArmor,
+                inventory: [...this.player.inventory],
+                potions: { ...this.player.potions }
             };
 
             // Save quest states to carry over

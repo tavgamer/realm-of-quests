@@ -48,8 +48,8 @@ class CombatSystem {
         this.scene.physics.add.existing(hitbox);
         hitbox.body.setAllowGravity(false);
 
-        // Visual feedback: a quick slash effect
-        this.showSlashEffect(hbX, hbY, player.facing);
+        // Visual feedback: a quick slash effect (color matches weapon!)
+        this.showSlashEffect(hbX, hbY, player.facing, player);
 
         // Check what enemies the hitbox overlaps with
         enemies.getChildren().forEach(enemy => {
@@ -95,51 +95,28 @@ class CombatSystem {
         });
     }
 
-    // Show a sword swing + slash arc effect
-    showSlashEffect(x, y, direction) {
-        // --- SWORD ---
-        // Draw a small pixel sword that appears in the player's hand
-        const sword = this.scene.add.graphics();
-        sword.setDepth(15);
+    // Show weapon swing + slash arc + special effects per weapon
+    showSlashEffect(x, y, direction, player) {
+        const weaponId = player ? player.equippedWeapon : 'wooden_sword';
+        const weaponData = WEAPONS[weaponId];
+        const bladeColor = weaponData ? weaponData.color : 0xc0c0c0;
 
-        // Sword position and rotation based on direction
-        let swordX = x, swordY = y;
-        let swordAngle = 0;      // Starting angle for the swing
-        let swingAmount = 90;     // How far the sword swings (degrees)
+        // --- DRAW THE WEAPON (unique shape per weapon) ---
+        const sword = this.scene.add.graphics().setDepth(15);
 
+        let swordAngle = 0;
+        let swingAmount = 90;
         switch (direction) {
-            case 'down':
-                swordAngle = -45;
-                break;
-            case 'up':
-                swordAngle = 135;
-                break;
-            case 'left':
-                swordAngle = 45;
-                break;
-            case 'right':
-                swordAngle = -135;
-                break;
+            case 'down':  swordAngle = -45;  break;
+            case 'up':    swordAngle = 135;  break;
+            case 'left':  swordAngle = 45;   break;
+            case 'right': swordAngle = -135; break;
         }
 
-        // Draw sword shape (blade + handle)
-        // Handle (brown)
-        sword.fillStyle(0x8B4513, 1);
-        sword.fillRect(-2, -2, 4, 6);
-        // Guard (gold)
-        sword.fillStyle(0xf1c40f, 1);
-        sword.fillRect(-4, 4, 8, 2);
-        // Blade (silver)
-        sword.fillStyle(0xc0c0c0, 1);
-        sword.fillRect(-1, -14, 3, 12);
-        // Blade tip
-        sword.fillStyle(0xe0e0e0, 1);
-        sword.fillRect(0, -16, 1, 3);
-
-        sword.setPosition(swordX, swordY);
+        this.drawWeaponShape(sword, weaponId, bladeColor);
+        sword.setPosition(x, y);
         sword.setAngle(swordAngle);
 
-        // Swing animation — rotate the sword through the arc
         this.scene.tweens.add({
             targets: sword,
             angle: swordAngle + swingAmount,
@@ -149,9 +126,7 @@ class CombatSystem {
         });
 
         // --- SLASH ARC ---
-        const slash = this.scene.add.graphics();
-        slash.setDepth(14);
-
+        const slash = this.scene.add.graphics().setDepth(14);
         let startAngle, endAngle;
         switch (direction) {
             case 'up':    startAngle = -150; endAngle = -30; break;
@@ -160,26 +135,240 @@ class CombatSystem {
             case 'right': startAngle = -60; endAngle = 60; break;
         }
 
-        // White outer arc
         slash.lineStyle(3, 0xffffff, 0.9);
         slash.beginPath();
-        slash.arc(x, y, 16, Phaser.Math.DegToRad(startAngle),
-                  Phaser.Math.DegToRad(endAngle), false);
+        slash.arc(x, y, 16, Phaser.Math.DegToRad(startAngle), Phaser.Math.DegToRad(endAngle), false);
         slash.strokePath();
 
-        // Red inner arc
-        slash.lineStyle(2, 0xe94560, 0.7);
+        slash.lineStyle(2, bladeColor, 0.7);
         slash.beginPath();
-        slash.arc(x, y, 12, Phaser.Math.DegToRad(startAngle),
-                  Phaser.Math.DegToRad(endAngle), false);
+        slash.arc(x, y, 12, Phaser.Math.DegToRad(startAngle), Phaser.Math.DegToRad(endAngle), false);
         slash.strokePath();
 
-        // Fade out
         this.scene.tweens.add({
-            targets: slash,
-            alpha: 0,
-            duration: 250,
+            targets: slash, alpha: 0, duration: 250,
             onComplete: () => slash.destroy()
         });
+
+        // --- SPECIAL EFFECTS for high-tier weapons ---
+        this.spawnWeaponParticles(x, y, weaponId, bladeColor);
+    }
+
+    // Draw unique weapon shape per weapon type
+    drawWeaponShape(gfx, weaponId, color) {
+        switch (weaponId) {
+            case 'wooden_sword':
+                // Simple wooden sword — short, thick, brown
+                gfx.fillStyle(0x5d4037, 1);
+                gfx.fillRect(-2, -2, 4, 7);     // Handle
+                gfx.fillStyle(0x8d6e63, 1);
+                gfx.fillRect(-3, 4, 6, 2);       // Guard
+                gfx.fillStyle(color, 1);
+                gfx.fillRect(-2, -12, 4, 10);    // Blade (wide, short)
+                gfx.fillStyle(0xffffff, 0.3);
+                gfx.fillRect(-1, -13, 2, 3);     // Tip
+                break;
+
+            case 'iron_sword':
+                // Classic sword — longer, proper shape
+                gfx.fillStyle(0x5d4037, 1);
+                gfx.fillRect(-2, -1, 4, 6);      // Handle
+                gfx.fillStyle(0xaaaaaa, 1);
+                gfx.fillRect(-4, 4, 8, 2);       // Guard
+                gfx.fillStyle(color, 1);
+                gfx.fillRect(-1, -15, 3, 14);    // Blade
+                gfx.fillStyle(0xffffff, 0.4);
+                gfx.fillRect(0, -15, 1, 14);     // Shine line
+                gfx.fillRect(-1, -17, 3, 2);     // Pointed tip
+                break;
+
+            case 'steel_sword':
+                // Broader, shinier blade
+                gfx.fillStyle(0x37474f, 1);
+                gfx.fillRect(-2, -1, 4, 6);      // Handle
+                gfx.fillStyle(0x78909c, 1);
+                gfx.fillRect(-5, 4, 10, 2);      // Wide guard
+                gfx.fillStyle(color, 1);
+                gfx.fillRect(-2, -16, 4, 15);    // Wide blade
+                gfx.fillStyle(0xffffff, 0.5);
+                gfx.fillRect(-1, -16, 1, 15);    // Shine
+                gfx.fillRect(0, -18, 1, 3);      // Sharp tip
+                break;
+
+            case 'magic_staff':
+                // Long thin staff with a glowing orb on top
+                gfx.fillStyle(0x5d4037, 1);
+                gfx.fillRect(-1, -2, 2, 10);     // Shaft
+                gfx.fillStyle(0x8d6e63, 1);
+                gfx.fillRect(-2, 6, 4, 2);       // Base
+                gfx.fillStyle(color, 1);
+                gfx.fillRect(-1, -18, 2, 16);    // Staff
+                // Orb at top
+                gfx.fillStyle(color, 1);
+                gfx.fillCircle(0, -20, 4);
+                gfx.fillStyle(0xffffff, 0.6);
+                gfx.fillCircle(-1, -21, 2);      // Orb shine
+                break;
+
+            case 'shadow_dagger':
+                // Short, thin, fast dagger
+                gfx.fillStyle(0x1a1a2e, 1);
+                gfx.fillRect(-1, 0, 2, 5);       // Handle (dark)
+                gfx.fillStyle(0x34495e, 1);
+                gfx.fillRect(-3, 4, 6, 1);       // Small guard
+                gfx.fillStyle(color, 1);
+                gfx.fillRect(-1, -10, 2, 10);    // Short blade
+                gfx.fillStyle(0xffffff, 0.3);
+                gfx.fillRect(0, -10, 1, 8);      // Shine
+                // Jagged tip
+                gfx.fillStyle(color, 1);
+                gfx.fillRect(0, -12, 1, 2);
+                break;
+
+            case 'fire_blade':
+                // Wavy flame-shaped blade
+                gfx.fillStyle(0x5d4037, 1);
+                gfx.fillRect(-2, -1, 4, 6);      // Handle
+                gfx.fillStyle(0xff6600, 1);
+                gfx.fillRect(-4, 4, 8, 2);       // Orange guard
+                // Flame blade — wavy shape
+                gfx.fillStyle(color, 1);
+                gfx.fillRect(-2, -16, 4, 15);    // Base blade
+                gfx.fillStyle(0xff6600, 0.8);
+                gfx.fillRect(-3, -12, 1, 4);     // Left wave
+                gfx.fillRect(3, -8, 1, 4);       // Right wave
+                gfx.fillStyle(0xffff00, 0.6);
+                gfx.fillRect(-1, -18, 2, 3);     // Flame tip
+                gfx.fillRect(0, -20, 1, 2);      // Extra flame
+                break;
+
+            case 'holy_sword':
+                // Grand golden sword with cross guard
+                gfx.fillStyle(0x8d6e63, 1);
+                gfx.fillRect(-2, -1, 4, 6);      // Handle
+                gfx.fillStyle(0xf1c40f, 1);
+                gfx.fillRect(-2, 5, 4, 2);       // Pommel
+                // Wide cross guard
+                gfx.fillStyle(color, 1);
+                gfx.fillRect(-6, 3, 12, 3);
+                // Broad golden blade
+                gfx.fillStyle(color, 1);
+                gfx.fillRect(-2, -18, 5, 17);
+                // Center shine
+                gfx.fillStyle(0xffffff, 0.5);
+                gfx.fillRect(0, -18, 1, 17);
+                // Diamond tip
+                gfx.fillStyle(0xffffff, 0.7);
+                gfx.fillRect(-1, -20, 3, 2);
+                gfx.fillRect(0, -22, 1, 2);
+                break;
+
+            default:
+                // Fallback basic sword
+                gfx.fillStyle(0x8B4513, 1);
+                gfx.fillRect(-2, -2, 4, 6);
+                gfx.fillStyle(0xf1c40f, 1);
+                gfx.fillRect(-4, 4, 8, 2);
+                gfx.fillStyle(color, 1);
+                gfx.fillRect(-1, -14, 3, 12);
+                break;
+        }
+    }
+
+    // Spawn special particles for high-tier weapons
+    spawnWeaponParticles(x, y, weaponId, color) {
+        if (weaponId === 'fire_blade') {
+            // Fire sparks flying outward
+            for (let i = 0; i < 6; i++) {
+                const spark = this.scene.add.circle(
+                    x + Phaser.Math.Between(-8, 8),
+                    y + Phaser.Math.Between(-8, 8),
+                    Phaser.Math.Between(1, 3),
+                    Phaser.Math.RND.pick([0xe74c3c, 0xff6600, 0xffff00]), 1
+                ).setDepth(16);
+                this.scene.tweens.add({
+                    targets: spark,
+                    x: spark.x + Phaser.Math.Between(-20, 20),
+                    y: spark.y + Phaser.Math.Between(-25, -5),
+                    alpha: 0, scaleX: 0, scaleY: 0,
+                    duration: Phaser.Math.Between(300, 500),
+                    onComplete: () => spark.destroy()
+                });
+            }
+        } else if (weaponId === 'holy_sword') {
+            // Golden light burst
+            const flash = this.scene.add.circle(x, y, 3, 0xffd700, 0.8).setDepth(16);
+            this.scene.tweens.add({
+                targets: flash,
+                scaleX: 5, scaleY: 5, alpha: 0,
+                duration: 350,
+                onComplete: () => flash.destroy()
+            });
+            // Gold sparkles
+            for (let i = 0; i < 5; i++) {
+                const angle = (i / 5) * Math.PI * 2;
+                const sparkle = this.scene.add.rectangle(
+                    x, y, 2, 2, 0xffd700
+                ).setDepth(16);
+                this.scene.tweens.add({
+                    targets: sparkle,
+                    x: x + Math.cos(angle) * 18,
+                    y: y + Math.sin(angle) * 18,
+                    alpha: 0,
+                    duration: 400,
+                    onComplete: () => sparkle.destroy()
+                });
+            }
+        } else if (weaponId === 'magic_staff') {
+            // Purple magic orbs
+            for (let i = 0; i < 4; i++) {
+                const orb = this.scene.add.circle(
+                    x + Phaser.Math.Between(-6, 6),
+                    y + Phaser.Math.Between(-6, 6),
+                    Phaser.Math.Between(2, 4), 0x9b59b6, 0.7
+                ).setDepth(16);
+                this.scene.tweens.add({
+                    targets: orb,
+                    x: orb.x + Phaser.Math.Between(-15, 15),
+                    y: orb.y + Phaser.Math.Between(-15, 15),
+                    alpha: 0, scaleX: 2, scaleY: 2,
+                    duration: 400,
+                    onComplete: () => orb.destroy()
+                });
+            }
+        } else if (weaponId === 'shadow_dagger') {
+            // Dark smoke wisps
+            for (let i = 0; i < 3; i++) {
+                const wisp = this.scene.add.circle(
+                    x + Phaser.Math.Between(-5, 5),
+                    y + Phaser.Math.Between(-5, 5),
+                    Phaser.Math.Between(2, 5), 0x2c3e50, 0.5
+                ).setDepth(16);
+                this.scene.tweens.add({
+                    targets: wisp,
+                    y: wisp.y - 15, alpha: 0, scaleX: 2, scaleY: 2,
+                    duration: 500,
+                    onComplete: () => wisp.destroy()
+                });
+            }
+        } else if (weaponId === 'steel_sword') {
+            // Metallic sparks
+            for (let i = 0; i < 3; i++) {
+                const spark = this.scene.add.rectangle(
+                    x + Phaser.Math.Between(-8, 8),
+                    y + Phaser.Math.Between(-8, 8),
+                    1, 1, 0xffffff, 1
+                ).setDepth(16);
+                this.scene.tweens.add({
+                    targets: spark,
+                    x: spark.x + Phaser.Math.Between(-12, 12),
+                    y: spark.y + Phaser.Math.Between(-12, 12),
+                    alpha: 0,
+                    duration: 250,
+                    onComplete: () => spark.destroy()
+                });
+            }
+        }
+        // wooden_sword and iron_sword: no special particles (basic weapons)
     }
 }
