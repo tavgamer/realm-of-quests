@@ -26,240 +26,332 @@ class GameScene extends Phaser.Scene {
         const mapWidth = this.currentArea.width;
         const mapHeight = this.currentArea.height;
         const tileSize = 16;
+        const isUnderwater = (this.currentAreaId === 'area2');
+        const worldW = mapWidth * tileSize;
+        const worldH = mapHeight * tileSize;
 
-        // --- CREATE THE TILEMAP ---
-        const map = this.make.tilemap({
-            tileWidth: tileSize,
-            tileHeight: tileSize,
-            width: mapWidth,
-            height: mapHeight
+        // ============================================================
+        // DYNAMIC MAP — no tiles, everything drawn with Graphics
+        // ============================================================
+        const gfx = this.add.graphics().setDepth(0);
+
+        // --- GROUND ---
+        if (isUnderwater) {
+            // Deep ocean floor gradient
+            gfx.fillStyle(0x0d2137, 1); gfx.fillRect(0, 0, worldW, worldH);
+            // Lighter patches
+            for (let i = 0; i < 80; i++) {
+                const px = Phaser.Math.Between(0, worldW);
+                const py = Phaser.Math.Between(0, worldH);
+                gfx.fillStyle(0x122a42, Phaser.Math.FloatBetween(0.3, 0.6));
+                gfx.fillCircle(px, py, Phaser.Math.Between(15, 50));
+            }
+        } else {
+            // Rich green grass base
+            gfx.fillStyle(0x3d8b37, 1); gfx.fillRect(0, 0, worldW, worldH);
+            // Grass color variation — random lighter/darker patches
+            for (let i = 0; i < 200; i++) {
+                const px = Phaser.Math.Between(0, worldW);
+                const py = Phaser.Math.Between(0, worldH);
+                const colors = [0x4a9e44, 0x358030, 0x2d7028, 0x50a84a, 0x3d8b37];
+                gfx.fillStyle(colors[Phaser.Math.Between(0, 4)], Phaser.Math.FloatBetween(0.3, 0.7));
+                gfx.fillCircle(px, py, Phaser.Math.Between(8, 30));
+            }
+        }
+
+        // --- PATHS (tan/sandy roads) ---
+        const pathGfx = this.add.graphics().setDepth(1);
+        const pathColor = isUnderwater ? 0x1a3a50 : 0xc4a265;
+        const pathEdge = isUnderwater ? 0x152e40 : 0xb08a4a;
+        const midY = Math.floor(mapHeight / 2) * tileSize;
+        const midX = Math.floor(mapWidth / 2) * tileSize;
+        const pw = tileSize * 2; // path width
+
+        // Horizontal path
+        pathGfx.fillStyle(pathEdge, 1);
+        pathGfx.fillRect(tileSize, midY - 2, worldW - tileSize * 2, pw + 4);
+        pathGfx.fillStyle(pathColor, 1);
+        pathGfx.fillRect(tileSize, midY, worldW - tileSize * 2, pw);
+        // Path texture dots
+        for (let x = tileSize; x < worldW - tileSize; x += 12) {
+            pathGfx.fillStyle(pathEdge, 0.3);
+            pathGfx.fillCircle(x + Phaser.Math.Between(0, 8), midY + Phaser.Math.Between(2, pw - 2), Phaser.Math.Between(1, 3));
+        }
+
+        // Vertical path
+        pathGfx.fillStyle(pathEdge, 1);
+        pathGfx.fillRect(midX - 2, tileSize * 3, pw + 4, worldH - tileSize * 6);
+        pathGfx.fillStyle(pathColor, 1);
+        pathGfx.fillRect(midX, tileSize * 3, pw, worldH - tileSize * 6);
+
+        if (!isUnderwater) {
+            // Village path (left side)
+            pathGfx.fillStyle(pathEdge, 1);
+            pathGfx.fillRect(15 * tileSize - 2, 10 * tileSize, pw + 4, (mapHeight - 20) * tileSize);
+            pathGfx.fillStyle(pathColor, 1);
+            pathGfx.fillRect(15 * tileSize, 10 * tileSize, pw, (mapHeight - 20) * tileSize);
+        }
+
+        // --- WATER AREAS (animated below) ---
+        this.waterZones = [];
+        const waterGfx = this.add.graphics().setDepth(2);
+        const drawWater = (tx, ty, tw, th) => {
+            const x = tx * tileSize, y = ty * tileSize;
+            const w = tw * tileSize, h = th * tileSize;
+            // Dark edge
+            waterGfx.fillStyle(0x0d47a1, 0.8);
+            waterGfx.fillRoundedRect(x - 3, y - 3, w + 6, h + 6, 6);
+            // Water body
+            waterGfx.fillStyle(0x1976d2, 0.9);
+            waterGfx.fillRoundedRect(x, y, w, h, 4);
+            // Highlight
+            waterGfx.fillStyle(0x42a5f5, 0.4);
+            waterGfx.fillRoundedRect(x + 4, y + 4, w * 0.6, h * 0.3, 3);
+            this.waterZones.push({ x, y, w, h });
+        };
+
+        if (!isUnderwater) {
+            drawWater(54, 38, 9, 9);  // Hidden pond
+            drawWater(20, 22, 3, 2);  // Village pond
+        } else {
+            drawWater(12, 10, 6, 4);  // Deep pool 1
+            drawWater(52, 35, 4, 3);  // Deep pool 2
+        }
+
+        // Animated water ripples
+        this.waterRipples = [];
+        this.waterZones.forEach(zone => {
+            for (let i = 0; i < 4; i++) {
+                const ripple = this.add.circle(
+                    zone.x + Phaser.Math.Between(10, zone.w - 10),
+                    zone.y + Phaser.Math.Between(10, zone.h - 10),
+                    Phaser.Math.Between(3, 8), 0x64b5f6, 0.3
+                ).setDepth(3);
+                this.tweens.add({
+                    targets: ripple,
+                    scaleX: 2, scaleY: 2, alpha: 0,
+                    duration: Phaser.Math.Between(2000, 4000),
+                    repeat: -1,
+                    delay: Phaser.Math.Between(0, 2000),
+                    onRepeat: () => {
+                        ripple.x = zone.x + Phaser.Math.Between(10, zone.w - 10);
+                        ripple.y = zone.y + Phaser.Math.Between(10, zone.h - 10);
+                        ripple.setScale(1);
+                    }
+                });
+                this.waterRipples.push(ripple);
+            }
         });
 
-        // Add tilesets (the "palette" of tiles we can paint with)
-        const grassTileset = map.addTilesetImage('grass');
-        const wallTileset = map.addTilesetImage('wall');
-        const pathTileset = map.addTilesetImage('path');
-        const waterTileset = map.addTilesetImage('water');
-        const houseTileset = map.addTilesetImage('house');
+        // --- TREES (drawn as actual tree shapes) ---
+        const treePositions = isUnderwater ? [] : [
+            // Same cluster positions, converted to pixel coords
+            [5,4],[6,4],[7,4],[8,4],[5,5],[6,5],[7,5],[4,7],[5,7],
+            [20,4],[21,4],[22,4],[23,4],[20,5],[21,5],[22,5],[22,7],[23,7],[24,7],
+            [28,5],[29,5],[30,5],[28,6],[29,6],
+            [50,5],[51,5],[52,5],[53,5],[55,4],[56,4],[57,4],
+            [60,6],[61,6],[62,6],[70,4],[71,4],[72,4],[73,4],[74,7],[75,7],
+            [4,20],[5,20],[6,20],[4,21],[5,21],[3,24],[4,24],
+            [7,35],[8,35],[9,35],[4,38],[5,38],[4,39],[5,39],
+            [25,18],[26,18],[27,18],[35,15],[36,15],[37,15],[35,16],[36,16],
+            [33,22],[34,22],[38,25],[39,25],[30,35],[30,36],[42,30],[43,30],
+            [62,18],[63,18],[64,18],[68,22],[69,22],[70,22],[72,28],[73,28],
+            [65,32],[65,33],[74,35],[75,35],[76,35],
+            [5,45],[6,45],[7,45],[8,45],[7,48],[8,48],[9,48],[3,51],[4,51],
+            [10,50],[10,51],[25,48],[26,48],[30,52],[31,52],[32,52],
+            [35,48],[36,48],[42,50],[42,51],[45,46],[46,46],
+            [62,48],[63,48],[64,48],[68,50],[69,50],[72,46],[73,46],[74,52],[75,52],
+            // Pond surround trees
+            [52,36],[53,36],[52,37],[53,37],[52,40],[53,40],[52,41],[53,41],[52,42],[53,42],
+            [54,36],[55,36],[56,36],[57,36],[58,36],[59,36],[60,36],[61,36],
+            [63,37],[64,37],[63,38],[64,38],[63,39],[64,39],[63,40],[64,40],
+            [63,41],[64,41],[63,42],[64,42],[63,43],[64,43],[63,44],[64,44],
+            [54,47],[55,47],[56,47],[57,47],[58,47],[59,47],[60,47],[61,47],[62,47],
+            [52,45],[53,45],
+        ];
 
-        // Underwater tilesets
-        const seaFloorTileset = map.addTilesetImage('sea-floor');
-        const coralTileset = map.addTilesetImage('coral');
-        const seaPathTileset = map.addTilesetImage('sea-path');
-        const ruinTileset = map.addTilesetImage('ruin');
+        // Coral positions for underwater
+        const coralPositions = !isUnderwater ? [] : [
+            [5,5],[6,5],[7,5],[15,6],[16,6],[17,6],[55,5],[56,5],[57,5],
+            [62,8],[63,8],[8,15],[9,15],[50,15],[50,16],[60,20],[61,20],[62,20],
+            [10,30],[11,30],[55,30],[56,30],[57,30],[20,38],[21,38],[22,38],
+            [45,38],[45,39],[60,40],[61,40],[8,42],[9,42],[10,42],[50,44],[51,44],
+        ];
 
-        // Pick tilesets based on area
-        const isUnderwater = (this.currentAreaId === 'area2');
-        const groundTile = isUnderwater ? seaFloorTileset : grassTileset;
-        const wallTile = isUnderwater ? coralTileset : wallTileset;
-        const pathTile = isUnderwater ? seaPathTileset : pathTileset;
-        const buildingTile = isUnderwater ? ruinTileset : houseTileset;
+        // Draw trees
+        treePositions.forEach(([tx, ty]) => {
+            const x = tx * tileSize + 8;
+            const y = ty * tileSize + 8;
+            const treeGfx = this.add.graphics().setDepth(4);
+            // Trunk
+            treeGfx.fillStyle(0x5d4037, 1);
+            treeGfx.fillRect(x - 2, y - 2, 4, 10);
+            // Canopy (layered circles for round look)
+            const cSize = Phaser.Math.Between(7, 12);
+            treeGfx.fillStyle(0x2e7d32, 1);
+            treeGfx.fillCircle(x, y - 6, cSize);
+            treeGfx.fillStyle(0x388e3c, 0.8);
+            treeGfx.fillCircle(x - 2, y - 8, cSize - 2);
+            // Highlight
+            treeGfx.fillStyle(0x4caf50, 0.5);
+            treeGfx.fillCircle(x - 2, y - 9, cSize - 4);
+        });
 
-        // --- GROUND LAYER ---
-        const groundLayer = map.createBlankLayer('ground', groundTile);
-        groundLayer.fill(0);
+        // Draw coral
+        coralPositions.forEach(([tx, ty]) => {
+            const x = tx * tileSize + 8;
+            const y = ty * tileSize + 8;
+            const coralGfx = this.add.graphics().setDepth(4);
+            const colors = [0xe74c3c, 0xf39c12, 0x9b59b6, 0x2ecc71, 0xe91e63];
+            const color = colors[Phaser.Math.Between(0, 4)];
+            // Coral branches
+            coralGfx.fillStyle(color, 0.9);
+            coralGfx.fillRect(x - 1, y - 8, 3, 12);
+            coralGfx.fillRect(x - 5, y - 5, 3, 8);
+            coralGfx.fillRect(x + 3, y - 6, 3, 9);
+            // Tips
+            coralGfx.fillStyle(color, 0.5);
+            coralGfx.fillCircle(x, y - 9, 3);
+            coralGfx.fillCircle(x - 4, y - 6, 2);
+            coralGfx.fillCircle(x + 4, y - 7, 2);
+        });
 
-        // --- PATH LAYER ---
-        const pathLayer = map.createBlankLayer('paths', pathTile);
-
-        if (isUnderwater) {
-            // Underwater City paths — main boulevard and side streets
-            for (let x = 3; x < mapWidth - 3; x++) {
-                pathLayer.putTileAt(0, x, Math.floor(mapHeight / 2));
-                pathLayer.putTileAt(0, x, Math.floor(mapHeight / 2) + 1);
-            }
-            for (let y = 5; y < mapHeight - 3; y++) {
-                pathLayer.putTileAt(0, Math.floor(mapWidth / 2), y);
-                pathLayer.putTileAt(0, Math.floor(mapWidth / 2) + 1, y);
-            }
-            // Side path to ruins
-            for (let x = 10; x < 25; x++) {
-                pathLayer.putTileAt(0, x, 20);
-            }
-        } else {
-            // Area 1 paths
-            for (let x = 1; x < mapWidth - 1; x++) {
-                pathLayer.putTileAt(0, x, Math.floor(mapHeight / 2));
-                pathLayer.putTileAt(0, x, Math.floor(mapHeight / 2) + 1);
-            }
-            for (let y = 3; y < mapHeight - 3; y++) {
-                pathLayer.putTileAt(0, Math.floor(mapWidth / 2), y);
-                pathLayer.putTileAt(0, Math.floor(mapWidth / 2) + 1, y);
-            }
-            for (let y = 10; y < mapHeight - 10; y++) {
-                pathLayer.putTileAt(0, 15, y);
-                pathLayer.putTileAt(0, 16, y);
-            }
-        }
-
-        // --- WALL LAYER (trees in area1, coral in area2) ---
-        const treeLayer = map.createBlankLayer('trees', wallTile);
-
-        // Border walls (around the edge of the map)
-        for (let x = 0; x < mapWidth; x++) {
-            treeLayer.putTileAt(0, x, 0);
-            treeLayer.putTileAt(0, x, 1);
-            treeLayer.putTileAt(0, x, mapHeight - 1);
-            treeLayer.putTileAt(0, x, mapHeight - 2);
-        }
-        for (let y = 0; y < mapHeight; y++) {
-            treeLayer.putTileAt(0, 0, y);
-            treeLayer.putTileAt(0, 1, y);
-            treeLayer.putTileAt(0, mapWidth - 1, y);
-            treeLayer.putTileAt(0, mapWidth - 2, y);
-        }
-
-        if (isUnderwater) {
-            // --- CORAL CLUSTERS (underwater obstacles) ---
-            this.placeCluster(treeLayer, 5, 5, 3, 3);
-            this.placeCluster(treeLayer, 15, 6, 4, 2);
-            this.placeCluster(treeLayer, 55, 5, 3, 3);
-            this.placeCluster(treeLayer, 62, 8, 3, 2);
-            this.placeCluster(treeLayer, 8, 15, 3, 2);
-            this.placeCluster(treeLayer, 50, 15, 2, 3);
-            this.placeCluster(treeLayer, 60, 20, 3, 3);
-            this.placeCluster(treeLayer, 10, 30, 3, 2);
-            this.placeCluster(treeLayer, 55, 30, 4, 2);
-            this.placeCluster(treeLayer, 20, 38, 3, 3);
-            this.placeCluster(treeLayer, 45, 38, 2, 3);
-            this.placeCluster(treeLayer, 60, 40, 3, 2);
-            this.placeCluster(treeLayer, 8, 42, 3, 3);
-            this.placeCluster(treeLayer, 50, 44, 3, 2);
-        }
-
-        // --- TREE CLUSTERS (filling the map with forests) ---
+        // --- ANIMATED GRASS BLADES (area1 only) ---
         if (!isUnderwater) {
-        // Top-left forest area
-        this.placeCluster(treeLayer, 5, 4, 4, 3);
-        this.placeCluster(treeLayer, 4, 7, 2, 2);
-        this.placeCluster(treeLayer, 10, 4, 3, 2);
-        // Top-center forest
-        this.placeCluster(treeLayer, 20, 4, 5, 3);
-        this.placeCluster(treeLayer, 22, 7, 3, 2);
-        this.placeCluster(treeLayer, 28, 5, 3, 3);
-        // Top-right forest
-        this.placeCluster(treeLayer, 50, 5, 4, 3);
-        this.placeCluster(treeLayer, 55, 4, 3, 2);
-        this.placeCluster(treeLayer, 60, 6, 3, 3);
-        this.placeCluster(treeLayer, 70, 4, 4, 3);
-        this.placeCluster(treeLayer, 74, 7, 3, 2);
-        // Mid-left scattered trees
-        this.placeCluster(treeLayer, 4, 20, 3, 3);
-        this.placeCluster(treeLayer, 3, 24, 2, 2);
-        this.placeCluster(treeLayer, 7, 35, 3, 2);
-        this.placeCluster(treeLayer, 4, 38, 2, 3);
-        // Mid-center trees
-        this.placeCluster(treeLayer, 25, 18, 3, 2);
-        this.placeCluster(treeLayer, 35, 15, 3, 3);
-        this.placeCluster(treeLayer, 33, 22, 2, 2);
-        this.placeCluster(treeLayer, 38, 25, 3, 2);
-        this.placeCluster(treeLayer, 30, 35, 2, 3);
-        this.placeCluster(treeLayer, 42, 30, 3, 2);
-        // Mid-right trees
-        this.placeCluster(treeLayer, 62, 18, 3, 2);
-        this.placeCluster(treeLayer, 68, 22, 4, 3);
-        this.placeCluster(treeLayer, 72, 28, 3, 2);
-        this.placeCluster(treeLayer, 65, 32, 2, 3);
-        this.placeCluster(treeLayer, 74, 35, 3, 3);
-        // Bottom-left forest
-        this.placeCluster(treeLayer, 5, 45, 4, 2);
-        this.placeCluster(treeLayer, 7, 48, 3, 3);
-        this.placeCluster(treeLayer, 3, 51, 3, 2);
-        this.placeCluster(treeLayer, 10, 50, 2, 3);
-        // Bottom-center trees
-        this.placeCluster(treeLayer, 25, 48, 4, 2);
-        this.placeCluster(treeLayer, 30, 52, 3, 3);
-        this.placeCluster(treeLayer, 35, 48, 3, 2);
-        this.placeCluster(treeLayer, 42, 50, 2, 3);
-        this.placeCluster(treeLayer, 45, 46, 3, 2);
-        // Bottom-right forest
-        this.placeCluster(treeLayer, 62, 48, 3, 3);
-        this.placeCluster(treeLayer, 68, 50, 4, 2);
-        this.placeCluster(treeLayer, 72, 46, 3, 3);
-        this.placeCluster(treeLayer, 74, 52, 3, 2);
-        // --- POND ENTRANCE TREES (surround the pond, hide the passage) ---
-        // Dense forest ring around the pond (player has to find a gap)
-        this.placeCluster(treeLayer, 52, 36, 2, 3);  // left of pond
-        this.placeCluster(treeLayer, 52, 40, 2, 4);  // left-bottom
-        this.placeCluster(treeLayer, 54, 36, 8, 2);  // top of pond
-        this.placeCluster(treeLayer, 63, 37, 2, 8);  // right of pond
-        this.placeCluster(treeLayer, 54, 47, 9, 2);  // bottom of pond
-        this.placeCluster(treeLayer, 52, 45, 2, 2);  // bottom-left corner
-        // Gap: one tile opening on the left side at y=39 (the secret entrance!)
-        // (tiles 52-53 at y=39 are NOT filled — that's the way in)
-        } // end area1 trees
+            this.grassBlades = [];
+            for (let i = 0; i < 300; i++) {
+                const bx = Phaser.Math.Between(tileSize * 2, worldW - tileSize * 2);
+                const by = Phaser.Math.Between(tileSize * 2, worldH - tileSize * 2);
+                const shade = Phaser.Math.Between(0, 2);
+                const color = [0x4caf50, 0x66bb6a, 0x388e3c][shade];
+                const blade = this.add.rectangle(bx, by, 1, Phaser.Math.Between(3, 6), color, 0.7)
+                    .setOrigin(0.5, 1).setDepth(1);
+                this.tweens.add({
+                    targets: blade,
+                    angle: { from: -8, to: 8 },
+                    duration: Phaser.Math.Between(1500, 3000),
+                    yoyo: true,
+                    repeat: -1,
+                    delay: Phaser.Math.Between(0, 2000),
+                    ease: 'Sine.easeInOut'
+                });
+                this.grassBlades.push(blade);
+            }
+        }
 
-        // Trees/coral are walkable — you can explore through them!
-        // (No collision set on tree layer)
-
-        // --- WATER LAYER ---
-        const waterLayer = map.createBlankLayer('water', waterTileset);
+        // --- FLOATING PARTICLES ---
         if (!isUnderwater) {
-            // Big pond hidden behind trees (teleport to Underwater City)
-            for (let x = 54; x < 63; x++) {
-                for (let y = 38; y < 47; y++) {
-                    waterLayer.putTileAt(0, x, y);
-                }
-            }
-            // Small decorative pond near the village
-            for (let x = 20; x < 23; x++) {
-                for (let y = 22; y < 24; y++) {
-                    waterLayer.putTileAt(0, x, y);
-                }
+            // Floating leaves
+            for (let i = 0; i < 15; i++) {
+                const leaf = this.add.rectangle(
+                    Phaser.Math.Between(0, worldW),
+                    Phaser.Math.Between(0, worldH),
+                    3, 2, 0x8bc34a, 0.5
+                ).setDepth(6);
+                this.tweens.add({
+                    targets: leaf,
+                    x: leaf.x + Phaser.Math.Between(-100, 100),
+                    y: leaf.y + Phaser.Math.Between(-60, 60),
+                    angle: 360,
+                    alpha: { from: 0.5, to: 0 },
+                    duration: Phaser.Math.Between(4000, 8000),
+                    repeat: -1,
+                    delay: Phaser.Math.Between(0, 4000)
+                });
             }
         } else {
-            // Area 2: decorative deep-water pools
-            for (let x = 12; x < 18; x++) {
-                for (let y = 10; y < 14; y++) {
-                    waterLayer.putTileAt(0, x, y);
-                }
-            }
-            for (let x = 52; x < 56; x++) {
-                for (let y = 35; y < 38; y++) {
-                    waterLayer.putTileAt(0, x, y);
-                }
+            // Floating bubbles
+            for (let i = 0; i < 25; i++) {
+                const bubble = this.add.circle(
+                    Phaser.Math.Between(0, worldW),
+                    Phaser.Math.Between(0, worldH),
+                    Phaser.Math.Between(1, 3), 0x64b5f6, 0.4
+                ).setDepth(6);
+                this.tweens.add({
+                    targets: bubble,
+                    y: bubble.y - Phaser.Math.Between(60, 150),
+                    alpha: 0,
+                    duration: Phaser.Math.Between(3000, 7000),
+                    repeat: -1,
+                    delay: Phaser.Math.Between(0, 4000),
+                    onRepeat: () => {
+                        bubble.x = Phaser.Math.Between(0, worldW);
+                        bubble.y = Phaser.Math.Between(worldH * 0.3, worldH);
+                    }
+                });
             }
         }
-        // Water is walkable (hidden pond = teleport zone)
 
-        // --- BUILDING LAYER (houses in area1, ruins in area2) ---
-        const houseLayer = map.createBlankLayer('houses', buildingTile);
-        if (isUnderwater) {
-            // Ancient underwater ruins
-            this.placeCluster(houseLayer, 33, 23, 4, 3);  // Central temple (near Sea Elder)
-            this.placeCluster(houseLayer, 15, 18, 3, 2);  // West ruin
-            this.placeCluster(houseLayer, 50, 20, 3, 2);  // East ruin
-            this.placeCluster(houseLayer, 25, 35, 3, 2);  // South-west ruin
-            this.placeCluster(houseLayer, 45, 35, 3, 2);  // South-east ruin
-            this.placeCluster(houseLayer, 35, 10, 2, 2);  // North shrine
-            this.placeCluster(houseLayer, 20, 42, 2, 2);  // Deep ruin
-            this.placeCluster(houseLayer, 55, 42, 3, 2);  // Far east ruin
-        } else {
-            // Area 1 houses
-            this.placeCluster(houseLayer, 10, 7, 3, 2);
-            this.placeCluster(houseLayer, 16, 6, 3, 2);
-            this.placeCluster(houseLayer, 6, 12, 2, 2);
-            this.placeCluster(houseLayer, 18, 11, 3, 2);
-            this.placeCluster(houseLayer, 10, 33, 3, 2);
-            this.placeCluster(houseLayer, 14, 35, 2, 2);
-            this.placeCluster(houseLayer, 22, 28, 3, 2);
-            this.placeCluster(houseLayer, 26, 26, 2, 2);
-            this.placeCluster(houseLayer, 45, 12, 2, 2);
-            this.placeCluster(houseLayer, 60, 14, 3, 2);
-            this.placeCluster(houseLayer, 40, 42, 2, 2);
-            this.placeCluster(houseLayer, 15, 50, 3, 2);
-        }
-        houseLayer.setCollisionByExclusion([-1]);
+        // --- HOUSES / RUINS (drawn as actual buildings) ---
+        this.buildingBodies = this.physics.add.staticGroup();
+        const housePositions = isUnderwater ? [
+            [33,23,4,3],[15,18,3,2],[50,20,3,2],[25,35,3,2],
+            [45,35,3,2],[35,10,2,2],[20,42,2,2],[55,42,3,2]
+        ] : [
+            [10,7,3,2],[16,6,3,2],[6,12,2,2],[18,11,3,2],
+            [10,33,3,2],[14,35,2,2],[22,28,3,2],[26,26,2,2],
+            [45,12,2,2],[60,14,3,2],[40,42,2,2],[15,50,3,2]
+        ];
+
+        housePositions.forEach(([tx, ty, tw, th]) => {
+            const x = tx * tileSize;
+            const y = ty * tileSize;
+            const w = tw * tileSize;
+            const h = th * tileSize;
+            const bGfx = this.add.graphics().setDepth(5);
+
+            if (isUnderwater) {
+                // Ancient ruins — stone pillars and broken walls
+                bGfx.fillStyle(0x37474f, 0.9);
+                bGfx.fillRect(x, y + 4, w, h - 4);
+                // Pillars
+                bGfx.fillStyle(0x546e7a, 1);
+                bGfx.fillRect(x + 2, y, 4, h);
+                bGfx.fillRect(x + w - 6, y, 4, h);
+                // Top beam
+                bGfx.fillStyle(0x546e7a, 1);
+                bGfx.fillRect(x, y, w, 4);
+                // Glow inside
+                bGfx.fillStyle(0x29b6f6, 0.2);
+                bGfx.fillRect(x + 8, y + 6, w - 16, h - 10);
+            } else {
+                // Cozy village houses
+                // Walls
+                bGfx.fillStyle(0xd7ccc8, 1);
+                bGfx.fillRect(x, y + 6, w, h - 6);
+                // Roof (darker, triangle-ish)
+                bGfx.fillStyle(0x8d6e63, 1);
+                bGfx.fillRect(x - 2, y, w + 4, 8);
+                bGfx.fillStyle(0x795548, 1);
+                bGfx.fillRect(x, y + 2, w, 4);
+                // Door
+                bGfx.fillStyle(0x5d4037, 1);
+                bGfx.fillRect(x + w / 2 - 3, y + h - 12, 6, 12);
+                // Windows (warm glow)
+                if (w > 20) {
+                    bGfx.fillStyle(0xfff59d, 0.8);
+                    bGfx.fillRect(x + 4, y + 10, 5, 5);
+                    bGfx.fillRect(x + w - 9, y + 10, 5, 5);
+                }
+            }
+
+            // Collision body (invisible)
+            const body = this.buildingBodies.create(x + w / 2, y + h / 2, null);
+            body.setVisible(false);
+            body.body.setSize(w, h);
+            body.setOrigin(0.5);
+            body.refreshBody();
+        });
 
         // --- WORLD BOUNDS ---
-        this.physics.world.setBounds(0, 0, mapWidth * tileSize, mapHeight * tileSize);
+        this.physics.world.setBounds(0, 0, worldW, worldH);
 
         // --- SPAWN PLAYER ---
         const spawnX = this.currentArea.playerSpawn.x * tileSize;
         const spawnY = this.currentArea.playerSpawn.y * tileSize;
         this.player = new Player(this, spawnX, spawnY);
 
-        // Restore player stats from previous area (if teleporting)
+        // Restore player stats
         if (this.savedPlayerStats) {
             const s = this.savedPlayerStats;
             this.player.level = s.level;
@@ -274,14 +366,12 @@ class GameScene extends Phaser.Scene {
 
         // --- CAMERA ---
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-        this.cameras.main.setBounds(0, 0, mapWidth * tileSize, mapHeight * tileSize);
+        this.cameras.main.setBounds(0, 0, worldW, worldH);
         this.cameras.main.setZoom(2.0);
-        // Background color based on area
         this.cameras.main.setBackgroundColor(isUnderwater ? '#0a1628' : '#1a1a2e');
 
         // --- COLLISIONS ---
-        // No water collider — player can walk into the hidden pond (teleport zone)
-        this.physics.add.collider(this.player, houseLayer);
+        this.physics.add.collider(this.player, this.buildingBodies);
 
         // --- LAUNCH THE HUD ---
         // bringToTop ensures UIScene renders AFTER (on top of) GameScene
@@ -318,11 +408,11 @@ class GameScene extends Phaser.Scene {
         // --- ENEMIES (spawned by quest system, not on load) ---
         this.enemies = this.physics.add.group();
 
-        // Store collision layers so the quest spawn system can use them
-        this.collisionLayers = { houseLayer };
+        // Store collision group for enemy spawning
+        this.collisionLayers = { buildings: this.buildingBodies };
 
-        // Enemies collide with houses and each other
-        this.physics.add.collider(this.enemies, houseLayer);
+        // Enemies collide with buildings and each other
+        this.physics.add.collider(this.enemies, this.buildingBodies);
         this.physics.add.collider(this.enemies, this.enemies);
 
         // --- TREASURE CHESTS (area1 only) ---
@@ -756,7 +846,7 @@ class GameScene extends Phaser.Scene {
 
         // Set up collisions for this new enemy
         const layers = this.collisionLayers;
-        this.physics.add.collider(enemy, layers.houseLayer);
+        this.physics.add.collider(enemy, layers.buildings);
     }
 
     // Called by QuestManager when quest is complete — stop spawning, kill all enemies
@@ -792,14 +882,7 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    // Helper to place a rectangle of tiles on a layer
-    placeCluster(layer, startX, startY, width, height) {
-        for (let x = startX; x < startX + width; x++) {
-            for (let y = startY; y < startY + height; y++) {
-                layer.putTileAt(0, x, y);
-            }
-        }
-    }
+    // (placeCluster removed — no longer using tilemaps)
 
     // Check if player stepped into teleport zones
     checkPondTeleport() {

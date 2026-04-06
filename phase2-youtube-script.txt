@@ -1,0 +1,37 @@
+  Script: "Adding Combat to My RPG Game — Phase 2"
+
+  [HOOK — 3 seconds, excited]
+
+  ▎ "Yesterday I built an RPG game from scratch. Today, I gave it combat."
+
+  [WHAT WE ADDED — storytelling, building excitement]
+
+  ▎ "So I already had a village you could walk around in. But walking around a peaceful village gets boring fast. I needed enemies.
+
+  ▎ I found a free sprite pack called PIPOYA on itch.io — it had goblins, slimes, skeletons, and all kinds of monsters. Downloaded it, dropped it into the project, and Claude Code wired up the animations.
+
+  ▎ Then came the fun part — building the actual combat system. When you press Space, your character swings a sword. A pixel sword actually appears in your hand and swings through an arc. If an enemy is in range, it takes damage — you see the number pop up and float away.
+
+  ▎ But enemies don't just stand there. They have AI — a state machine with three modes. They patrol around randomly. When you get close, they spot you and chase. Get too close? They attack back. And they hit hard."
+
+  [THE COOL DETAILS — proud, showing off what we built]
+
+  ▎ "Here's what makes it feel like a real game. When you hit an enemy, it gets knocked back and stunned for a moment. When you kill one, it flashes white, bursts into particles, spins away, and drops XP and Gold.
+
+  ▎ The HUD now shows your XP — like 0 out of 100 — and it goes up every time you get a kill. There's a one second cooldown between attacks, so you can't just spam. You have to time your swings and dodge between them.
+
+  ▎ And if you die? Screen shakes, your character spins out, everything goes dark, and a big red 'YOU DIED' screen appears. Click respawn, and you're back at the village with a moment of invincibility to get your bearings."
+
+  [WHAT I LEARNED — reflective]
+
+  ▎ "The biggest thing I learned today was state machines. It's how the enemy AI works — idle, patrol, chase, attack. Each state has rules for when to switch to another. It's simple logic, but it makes the enemies feel alive.
+
+  ▎ I also learned about hitboxes, knockback physics, and invincibility frames — the same concepts real games like Zelda use."
+
+  [OUTRO — looking forward]
+
+  ▎ "Phase 3 is quests. Talking to NPCs, accepting missions, tracking progress. The game is really coming together.
+
+  ▎ Link to play it is in the description. This is Realm of Quests — and the journey continues."
+
+  [GAME FOOTAGE — show combat: attacking goblins, taking damage, dying, respawning, earning XP]

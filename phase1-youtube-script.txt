@@ -1,0 +1,50 @@
+ ---
+  Title
+
+  I Built a Full RPG Game in ONE Day — Zero Experience (Claude Code)
+
+  Description
+
+  What if I told you I built a full RPG game in a single day with zero game dev experience?
+
+  I used Claude Code (an AI coding assistant) to build "Realm of Quests" — a top-down 2D fantasy RPG that runs right in your browser.
+
+  🎮 PLAY THE GAME: https://tavgamer.github.io/realm-of-quests/
+  💻 SOURCE CODE: https://github.com/tavgamer/realm-of-quests
+
+  ⚡ Tech Stack:
+  - Phaser 3 (JavaScript game framework)
+  - Claude Code (AI coding assistant)
+  - WSL + Ubuntu on Windows
+  - Plain HTML/JS — no build tools
+
+  🗺️ What's in Phase 1:
+  - Walk around Greenwood Village
+  - Meet NPCs: Village Elder & Shopkeeper
+  - Pixel art character sprites with 4-direction animation
+  - HUD with HP, Level, and Gold
+
+  🔮 Coming Next:
+  - Phase 2: Combat (sword attacks, enemy AI)
+  - Phase 3: Quests & NPC dialog
+  - Phase 4: Leveling up & multiple areas
+  - Phase 5: Inventory & weapon shop
+
+  Subscribe to follow the full journey! 🚀
+
+  #gamedev #indiedev #claudecode #phaser3 #pixelart #rpg
+
+  Tags
+
+  game development, indie game dev, claude code, ai coding, phaser 3, javascript game, pixel art rpg, top down rpg, browser game, learn to code, coding with ai, first game, beginner gamedev, realm of quests, web game, html5 game, ai assistant, build a game, game dev journey,
+  programming
+
+  Thumbnail
+
+  ~/learning/thumbnail.png (1280x720) — shows "I BUILT A FULL RPG GAME IN ONE DAY" with a mini game preview on the right, play button, and your tech stack at the bottom.
+
+  All files are in ~/learning/:
+  - my-first-game-v4.mp4 — the video
+  - thumbnail.png — YouTube thumbnail
+
+  Good luck with the upload! Let me know how it goes.
