@@ -11,3 +11,32 @@ assets/sprites/player/*_preview.png
 assets/sprites/npcs/*_preview.png
 assets/sprites/player/player_bottom.png
 assets/sprites/player/player_top.png
+
+# Build artifacts
+dist/
+realm-of-quests-itchio.zip
+
+# Source sprite packs (large, kept locally)
+"New sprites/"
+New sprites/
+
+# Dev / build scripts (not part of the game)
+fix_sprites2.py
+fix_sprites3.py
+convert_sprites.py
+build_itchio.py
+make_thumbnail.py
+
+# Video assets
+thumbnail_phase7.png
+video-script-phase6.txt
+video-script-phase7.txt
+phase1-youtube-script.txt
+phase2-youtube-script.txt
+phase3-4-youtube-script.txt
+phase5-youtube-script.txt
+
+# IDE / OS
+docs/superpowers/
+skills-lock.json
+*.png:Zone.Identifier

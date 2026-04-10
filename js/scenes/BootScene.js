@@ -52,19 +52,29 @@ class BootScene extends Phaser.Scene {
             frameHeight: 32
         });
 
-        // Enemy spritesheets (same 3x4 format as player: 96x128, 32x32 frames)
-        this.load.spritesheet('enemy-goblin', 'assets/sprites/enemies/goblin.png', {
-            frameWidth: 32, frameHeight: 32
-        });
-        this.load.spritesheet('enemy-slime', 'assets/sprites/enemies/slime.png', {
-            frameWidth: 32, frameHeight: 32
-        });
-        this.load.spritesheet('enemy-wolf', 'assets/sprites/enemies/wolf.png', {
-            frameWidth: 32, frameHeight: 32
-        });
-        this.load.spritesheet('enemy-bandit', 'assets/sprites/enemies/bandit.png', {
-            frameWidth: 32, frameHeight: 32
-        });
+        // Enemy spritesheets — PIPOYA 32x32 format (96x128, same 3x4 grid as player)
+        // Each enemy type gets its own unique sprite now
+        for (let i = 1; i <= 12; i++) {
+            const key = 'enemy-e' + String(i).padStart(2, '0');
+            const file = 'assets/sprites/enemies/e' + String(i).padStart(2, '0') + '.png';
+            this.load.spritesheet(key, file, { frameWidth: 32, frameHeight: 32 });
+        }
+
+        // New real enemy sprites — replace generated placeholders for specific enemies
+        const newEnemySprites = [
+            'goblin', 'slime', 'wolf', 'bandit',
+            'swamp_lurker', 'poison_toad', 'swamp_beast',
+            'scorpion', 'sand_raider',
+            'lava_golem', 'fire_imp', 'fire_dragon',
+            'frost_wolf', 'ice_giant',
+            'dark_knight', 'crystal_golem', 'gem_spider',
+            'dark_lord', 'shadow_demon', 'sky_lord', 'storm_hawk'
+        ];
+        for (const name of newEnemySprites) {
+            this.load.spritesheet('enemy-' + name, 'assets/sprites/enemies/' + name + '.png', { frameWidth: 32, frameHeight: 32 });
+        }
+
+        // Quest item glow sprite (generated in create)
 
         // Load the terrain tileset image (for reference / future use)
         this.load.image('terrain', 'assets/tilesets/terrain.png');
@@ -376,8 +386,8 @@ class BootScene extends Phaser.Scene {
 
         // --- ENEMY ANIMATIONS ---
         // All enemies use the same 3x4 spritesheet layout as the player.
-        // We create walk animations for each enemy type and direction.
-        const enemyTypes = ['goblin', 'slime', 'wolf', 'bandit'];
+        // We create walk animations for each enemy sprite (e01-e13).
+        const enemyTypes = ['e01','e02','e03','e04','e05','e06','e07','e08','e09','e10','e11','e12'];
         for (const type of enemyTypes) {
             const key = 'enemy-' + type;
             // Walk animations
@@ -413,14 +423,218 @@ class BootScene extends Phaser.Scene {
             });
         }
 
+        // --- GENERATED ENEMY SPRITES ---
+        // Enemies without a matching PIPOYA sprite are drawn with pixel art here.
+        // Each texture is a 96x128 spritesheet (3 cols × 4 rows of 32x32 frames).
+        // col===1 shifts the drawing 1px down for a simple walk-cycle bob.
+
+        const genSprite = (key, drawFn) => {
+            const g = this.make.graphics({ x: 0, y: 0, add: false });
+            for (let row = 0; row < 4; row++) {
+                for (let col = 0; col < 3; col++) {
+                    drawFn(g, col * 32, row * 32, col === 1 ? 1 : 0);
+                }
+            }
+            g.generateTexture('enemy-' + key, 96, 128);
+            g.destroy();
+            // generateTexture makes a single-frame texture — we need to add
+            // the 12 individual frame rects so animations can use frame numbers
+            const tex = this.textures.get('enemy-' + key);
+            for (let i = 0; i < 12; i++) {
+                tex.add(i, 0, (i % 3) * 32, Math.floor(i / 3) * 32, 32, 32);
+            }
+        };
+
+        // Drowned Pirate — undead skeleton in pirate colours
+        genSprite('pirate', (g, fx, fy, bob) => {
+            g.fillStyle(0x1a1a2e, 1);                                   // hat brim
+            g.fillRect(fx+8,  fy+6+bob, 16, 3);
+            g.fillTriangle(fx+10,fy+6+bob, fx+22,fy+6+bob, fx+16,fy+bob); // hat peak
+            g.fillStyle(0xc8c8a0, 1);                                   // skull
+            g.fillCircle(fx+16, fy+12+bob, 6);
+            g.fillStyle(0x080818, 1);                                   // eye sockets
+            g.fillCircle(fx+13, fy+11+bob, 2);
+            g.fillCircle(fx+19, fy+11+bob, 2);
+            g.fillStyle(0xa8a888, 1);                                   // ribcage
+            g.fillRect(fx+12, fy+18+bob, 8, 2);
+            g.fillRect(fx+11, fy+21+bob, 10, 2);
+            g.fillRect(fx+12, fy+24+bob, 8, 2);
+            g.fillStyle(0x7a7a7a, 1);                                   // cutlass
+            g.fillRect(fx+22, fy+13+bob, 2, 12);
+            g.fillRect(fx+20, fy+15+bob, 6, 2);
+            g.fillStyle(0x006666, 0.5);                                 // drowned seaweed tint strips
+            g.fillRect(fx+10, fy+17+bob, 3, 10);
+            g.fillRect(fx+17, fy+18+bob, 3, 9);
+        });
+
+        // Swamp Lurker — hunched dark green creature with glowing eyes
+        genSprite('lurker', (g, fx, fy, bob) => {
+            g.fillStyle(0x1e4a1e, 1);                                   // body blob
+            g.fillEllipse(fx+16, fy+20+bob, 18, 14);
+            g.fillStyle(0x2a6b2a, 1);                                   // humped back
+            g.fillEllipse(fx+16, fy+13+bob, 14, 12);
+            g.fillStyle(0x0d0d0d, 1);                                   // face hollow
+            g.fillEllipse(fx+16, fy+13+bob, 10, 8);
+            g.fillStyle(0xffdd00, 1);                                   // glowing eyes
+            g.fillCircle(fx+12, fy+12+bob, 2.5);
+            g.fillCircle(fx+20, fy+12+bob, 2.5);
+            g.fillStyle(0x1a3d1a, 1);                                   // claws
+            g.fillTriangle(fx+5,fy+22+bob, fx+9,fy+19+bob, fx+7,fy+26+bob);
+            g.fillTriangle(fx+27,fy+22+bob, fx+23,fy+19+bob, fx+25,fy+26+bob);
+        });
+
+        // Poison Toad — fat green toad with bulging red eyes
+        genSprite('toad', (g, fx, fy, bob) => {
+            g.fillStyle(0x276127, 1);                                   // body
+            g.fillEllipse(fx+16, fy+21+bob, 20, 14);
+            g.fillStyle(0x39873a, 1);                                   // head
+            g.fillEllipse(fx+16, fy+13+bob, 18, 13);
+            g.fillStyle(0x2a6e2a, 1);                                   // belly spots
+            g.fillCircle(fx+14, fy+21+bob, 3);
+            g.fillCircle(fx+19, fy+22+bob, 2);
+            g.fillStyle(0xffffff, 1);                                   // eye whites
+            g.fillCircle(fx+11, fy+9+bob, 4);
+            g.fillCircle(fx+21, fy+9+bob, 4);
+            g.fillStyle(0xdd1111, 1);                                   // pupils
+            g.fillCircle(fx+11, fy+9+bob, 2);
+            g.fillCircle(fx+21, fy+9+bob, 2);
+            g.fillStyle(0x1f4f1f, 1);                                   // legs
+            g.fillRect(fx+5,  fy+24+bob, 6, 5);
+            g.fillRect(fx+21, fy+24+bob, 6, 5);
+        });
+
+        // Sand Raider — desert warrior with head wrap and scimitar
+        genSprite('raider', (g, fx, fy, bob) => {
+            g.fillStyle(0xc8a050, 1);                                   // robe
+            g.fillRect(fx+10, fy+16+bob, 12, 13);
+            g.fillStyle(0xe8c070, 1);                                   // face
+            g.fillCircle(fx+16, fy+11+bob, 6);
+            g.fillStyle(0xd4a040, 1);                                   // head wrap band
+            g.fillRect(fx+9, fy+7+bob, 14, 5);
+            g.fillStyle(0xb08030, 1);                                   // wrap tail
+            g.fillRect(fx+20, fy+9+bob, 4, 9);
+            g.fillStyle(0xdddd55, 1);                                   // belt
+            g.fillRect(fx+10, fy+21+bob, 12, 2);
+            g.fillStyle(0xaaaaaa, 1);                                   // scimitar blade
+            g.fillRect(fx+22, fy+14+bob, 2, 10);
+            g.fillRect(fx+21, fy+22+bob, 4, 2);
+            g.fillRect(fx+22, fy+24+bob, 3, 3);
+            g.fillStyle(0x6b6b20, 1);                                   // eyes
+            g.fillRect(fx+13, fy+11+bob, 2, 2);
+            g.fillRect(fx+17, fy+11+bob, 2, 2);
+        });
+
+        // Gem Spider — purple spider with a sparkling gem abdomen and 8 legs
+        genSprite('spider', (g, fx, fy, bob) => {
+            g.fillStyle(0x6600aa, 1);                                   // abdomen (large gem)
+            g.fillEllipse(fx+16, fy+20+bob, 14, 11);
+            g.fillStyle(0xaa44ff, 1);                                   // gem shine
+            g.fillEllipse(fx+14, fy+18+bob, 5, 4);
+            g.fillStyle(0x7711bb, 1);                                   // cephalothorax
+            g.fillEllipse(fx+16, fy+12+bob, 9, 8);
+            g.fillStyle(0xffaaff, 1);                                   // eyes (4 pairs)
+            for (let i = 0; i < 4; i++) g.fillCircle(fx+11+i*2, fy+11+bob, 1.2);
+            g.fillStyle(0x440077, 1);                                   // legs (4 pairs)
+            const lx = [4,6,8,9,23,22,24,26];
+            const ly = [12,16,20,23,12,16,20,23];
+            for (let i = 0; i < 4; i++) {
+                g.fillRect(lx[i],   fy+ly[i]+bob, 2, 5);
+                g.fillRect(lx[i+4], fy+ly[i]+bob, 2, 5);
+            }
+        });
+
+        // Sky Guardian — gold-armored celestial warrior with wings
+        genSprite('guardian', (g, fx, fy, bob) => {
+            g.fillStyle(0xffffff, 1);                                   // wings
+            g.fillTriangle(fx+2,fy+18+bob,  fx+10,fy+10+bob, fx+10,fy+24+bob);
+            g.fillTriangle(fx+30,fy+18+bob, fx+22,fy+10+bob, fx+22,fy+24+bob);
+            g.fillStyle(0xffd700, 1);                                   // armour body
+            g.fillRect(fx+11, fy+15+bob, 10, 13);
+            g.fillStyle(0xffe040, 1);                                   // face
+            g.fillCircle(fx+16, fy+10+bob, 6);
+            g.fillStyle(0xccaa00, 1);                                   // helm visor
+            g.fillRect(fx+11, fy+8+bob, 10, 4);
+            g.fillStyle(0xfffaaa, 1);                                   // halo
+            g.lineStyle(2, 0xfffaaa, 0.9);
+            g.strokeCircle(fx+16, fy+4+bob, 5);
+            g.fillStyle(0x888800, 1);                                   // shoulder guards
+            g.fillRect(fx+8,  fy+15+bob, 4, 5);
+            g.fillRect(fx+20, fy+15+bob, 4, 5);
+        });
+
+        // Storm Hawk — sleek blue-grey bird with talons
+        genSprite('hawk', (g, fx, fy, bob) => {
+            g.fillStyle(0x3a6ab0, 1);                                   // body
+            g.fillEllipse(fx+16, fy+16+bob, 10, 14);
+            g.fillStyle(0x5590d0, 1);                                   // wings spread
+            g.fillEllipse(fx+7,  fy+15+bob, 12, 6);
+            g.fillEllipse(fx+25, fy+15+bob, 12, 6);
+            g.fillStyle(0x2a4e90, 1);                                   // wing tips
+            g.fillTriangle(fx+2,fy+17+bob,  fx+8,fy+12+bob,  fx+8,fy+20+bob);
+            g.fillTriangle(fx+30,fy+17+bob, fx+24,fy+12+bob, fx+24,fy+20+bob);
+            g.fillStyle(0xeef0f0, 1);                                   // white head
+            g.fillCircle(fx+16, fy+8+bob, 5);
+            g.fillStyle(0xffcc00, 1);                                   // beak
+            g.fillTriangle(fx+16,fy+8+bob, fx+21,fy+8+bob, fx+18,fy+11+bob);
+            g.fillStyle(0x0a1a30, 1);                                   // eye
+            g.fillCircle(fx+14, fy+7+bob, 1.5);
+            g.fillStyle(0xffcc00, 1);                                   // talons
+            g.fillRect(fx+13, fy+25+bob, 2, 4);
+            g.fillRect(fx+17, fy+25+bob, 2, 4);
+            g.fillRect(fx+11, fy+28+bob, 3, 2);
+            g.fillRect(fx+18, fy+28+bob, 3, 2);
+        });
+
+        // Register animations for remaining generated sprite keys (guardian still used by sky_guardian)
+        const genTypes = ['pirate','lurker','toad','raider','spider','guardian','hawk'];
+        for (const type of genTypes) {
+            const key = 'enemy-' + type;
+            this.anims.create({ key: key+'-walk-down',  frames: this.anims.generateFrameNumbers(key, {start:0,end:2}),  frameRate:6, repeat:-1 });
+            this.anims.create({ key: key+'-walk-left',  frames: this.anims.generateFrameNumbers(key, {start:3,end:5}),  frameRate:6, repeat:-1 });
+            this.anims.create({ key: key+'-walk-right', frames: this.anims.generateFrameNumbers(key, {start:6,end:8}),  frameRate:6, repeat:-1 });
+            this.anims.create({ key: key+'-walk-up',    frames: this.anims.generateFrameNumbers(key, {start:9,end:11}), frameRate:6, repeat:-1 });
+            this.anims.create({ key: key+'-idle',       frames: [{ key, frame: 1 }], frameRate: 1 });
+        }
+
+        // Register animations for all new real sprite files
+        const newSpriteTypes = [
+            'goblin', 'slime', 'wolf', 'bandit',
+            'swamp_lurker', 'poison_toad', 'swamp_beast',
+            'scorpion', 'sand_raider',
+            'lava_golem', 'fire_imp', 'fire_dragon',
+            'frost_wolf', 'ice_giant',
+            'dark_knight', 'crystal_golem', 'gem_spider',
+            'dark_lord', 'shadow_demon', 'sky_lord', 'storm_hawk'
+        ];
+        for (const type of newSpriteTypes) {
+            const key = 'enemy-' + type;
+            this.anims.create({ key: key+'-walk-down',  frames: this.anims.generateFrameNumbers(key, {start:0,end:2}),  frameRate:6, repeat:-1 });
+            this.anims.create({ key: key+'-walk-left',  frames: this.anims.generateFrameNumbers(key, {start:3,end:5}),  frameRate:6, repeat:-1 });
+            this.anims.create({ key: key+'-walk-right', frames: this.anims.generateFrameNumbers(key, {start:6,end:8}),  frameRate:6, repeat:-1 });
+            this.anims.create({ key: key+'-walk-up',    frames: this.anims.generateFrameNumbers(key, {start:9,end:11}), frameRate:6, repeat:-1 });
+            this.anims.create({ key: key+'-idle',       frames: [{ key, frame: 1 }], frameRate: 1 });
+        }
+
+        // --- QUEST ITEM GLOW TEXTURES ---
+        // A small glowing circle used for collectible quest items
+        const itemGfx = this.make.graphics({ x: 0, y: 0, add: false });
+        itemGfx.fillStyle(0xffd700, 1);   // gold center
+        itemGfx.fillCircle(6, 6, 4);
+        itemGfx.fillStyle(0xffffff, 0.6);
+        itemGfx.fillCircle(5, 5, 2);      // shine
+        itemGfx.generateTexture('quest-item', 12, 12);
+        itemGfx.destroy();
+
         // Apply NEAREST filtering to game sprites (crispy pixel art)
         // Text stays smooth because it's rendered separately
+        // NEAREST filter = crispy pixel art at 1:1 scale.
+        // Enemy sprites are intentionally EXCLUDED — bosses scale up 2-3x and
+        // NEAREST makes them very blocky. LINEAR gives smooth scaling at all sizes.
         const pixelTextures = [
             'grass', 'wall', 'water', 'path', 'house', 'npc',
             'sea-floor', 'coral', 'sea-path', 'ruin',
             'chest', 'chest-open',
-            'player-sheet', 'npc-elder-sheet', 'npc-shopkeeper-sheet',
-            'enemy-goblin', 'enemy-slime', 'enemy-wolf', 'enemy-bandit'
+            'player-sheet', 'npc-elder-sheet', 'npc-shopkeeper-sheet'
         ];
         pixelTextures.forEach(key => {
             const tex = this.textures.get(key);

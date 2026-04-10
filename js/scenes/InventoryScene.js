@@ -55,7 +55,7 @@ class InventoryScene extends Phaser.Scene {
         this.drawEquippedPanel(400, 80, 480, 200);
 
         // --- OWNED ITEMS GRID (bottom half) ---
-        this.drawItemsGrid(80, 310, w - 160, 360);
+        this.drawItemsGrid(80, 285, w - 160, 425);
 
         // --- CLOSE KEY ---
         const closeKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
@@ -179,47 +179,51 @@ class InventoryScene extends Phaser.Scene {
         gfx.lineStyle(1, 0x3a4a5a, 0.6);
         gfx.strokeRoundedRect(x, y, w, h, 10);
 
-        // Section headers
+        const itemW = 105;
+        const itemH = 110;
+        const gap = 8;
+        const startX = x + 15;
+        const itemsPerRow = Math.floor(w / (itemW + gap));
+
+        // --- WEAPONS SECTION ---
         this.add.text(x + 15, y + 10, 'WEAPONS', {
             fontSize: '14px', fontFamily: 'Press Start 2P',
             color: '#e74c3c', stroke: '#000000', strokeThickness: 2
         }).setDepth(2);
 
-        this.add.text(x + 15, y + 175, 'ARMOR', {
-            fontSize: '14px', fontFamily: 'Press Start 2P',
-            color: '#3498db', stroke: '#000000', strokeThickness: 2
-        }).setDepth(2);
-
-        // Draw weapon items
-        let col = 0;
-        const itemW = 140;
-        const itemH = 120;
-        const startX = x + 20;
-        const gap = 10;
-
-        // Weapons row
+        let weaponIndex = 0;
         for (const weaponId in WEAPONS) {
             const weapon = WEAPONS[weaponId];
             const owned = this.playerRef.inventory.includes(weaponId);
             const equipped = this.playerRef.equippedWeapon === weaponId;
+            const col = weaponIndex % itemsPerRow;
+            const row = Math.floor(weaponIndex / itemsPerRow);
             const ix = startX + col * (itemW + gap);
-            const iy = y + 35;
-
+            const iy = y + 35 + row * (itemH + gap);
             this.drawGridItem(ix, iy, itemW, itemH, weapon, weaponId, 'weapon', owned, equipped);
-            col++;
+            weaponIndex++;
         }
 
-        // Armor row
-        col = 0;
+        const weaponRows = Math.ceil(Object.keys(WEAPONS).length / itemsPerRow);
+        const armorStartY = y + 35 + weaponRows * (itemH + gap) + 20;
+
+        // --- ARMOR SECTION ---
+        this.add.text(x + 15, armorStartY - 22, 'ARMOR', {
+            fontSize: '14px', fontFamily: 'Press Start 2P',
+            color: '#3498db', stroke: '#000000', strokeThickness: 2
+        }).setDepth(2);
+
+        let armorIndex = 0;
         for (const armorId in ARMOR) {
             const armor = ARMOR[armorId];
             const owned = this.playerRef.inventory.includes(armorId);
             const equipped = this.playerRef.equippedArmor === armorId;
+            const col = armorIndex % itemsPerRow;
+            const row = Math.floor(armorIndex / itemsPerRow);
             const ix = startX + col * (itemW + gap);
-            const iy = y + 200;
-
+            const iy = armorStartY + row * (itemH + gap);
             this.drawGridItem(ix, iy, itemW, itemH, armor, armorId, 'armor', owned, equipped);
-            col++;
+            armorIndex++;
         }
     }
 

@@ -25,6 +25,9 @@ html, body {
 #game-container {
     width: 100vw;
     height: 100vh;
+    /* dvh = "dynamic viewport height" — adjusts for mobile browser chrome (address bar etc.)
+       Falls back to 100vh on browsers that don't support dvh yet. */
+    height: 100dvh;
 }
 
 /* Force landscape orientation on mobile */

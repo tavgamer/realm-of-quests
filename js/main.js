@@ -31,3 +31,16 @@ const config = {
 
 // Create the game! This one line starts everything.
 const game = new Phaser.Game(config);
+
+// Mobile viewport fix: 100vh on iOS Safari includes the address bar, which
+// can push the canvas partly off-screen. We use window.innerHeight (the true
+// visible height) and update it whenever the screen resizes or rotates.
+function fitContainer() {
+    const el = document.getElementById('game-container');
+    el.style.width  = window.innerWidth  + 'px';
+    el.style.height = window.innerHeight + 'px';
+    if (game.scale) game.scale.refresh();
+}
+window.addEventListener('resize', fitContainer);
+window.addEventListener('orientationchange', () => setTimeout(fitContainer, 150));
+fitContainer();

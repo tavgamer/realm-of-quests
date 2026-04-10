@@ -47,10 +47,12 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.body.setOffset(7, 12);
         this.setDepth(data.isBoss ? 9 : 8);
 
-        // --- BOSS VISUALS ---
+        // --- ENEMY VISUALS ---
         this.isBoss = data.isBoss || false;
-        if (this.isBoss) {
-            this.setTint(0xff4444);  // Red tint for boss
+        if (data.color) {
+            // Apply tint when defined — bosses use their color, and some
+            // regular enemies share a sprite but are tinted to look distinct
+            this.setTint(data.color);
         }
 
         // --- AI STATE ---
@@ -248,6 +250,7 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
     // --- DEATH ---
     die() {
         this.state = 'DEAD';
+        if (this.scene.soundManager) this.scene.soundManager.play('enemyDie');
         this.setVelocity(0, 0);
         this.body.enable = false;
 
@@ -257,12 +260,13 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
             this.target.gold += this.enemyData.goldDrop;
         }
 
-        // Notify quest manager about the kill
+        // Notify quest manager about the kill (pass position for item drops)
         if (this.scene.questManager) {
             this.scene.questManager.onEnemyKilled(
                 this.enemyType,
                 this.enemyData.xpReward,
-                this.enemyData.goldDrop
+                this.enemyData.goldDrop,
+                this.x, this.y
             );
         }
 

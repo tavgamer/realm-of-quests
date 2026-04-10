@@ -71,55 +71,122 @@ class QuestManager {
 
     // Accept a quest
     acceptQuest(questId) {
+        const quest = QUESTS[questId];
+
+        // Auto-complete quests (like elder's return/explore) complete instantly
+        if (quest.autoComplete) {
+            this.questStates[questId] = 'rewarded';
+            this.questProgress[questId] = quest.targetCount;
+            this.questKillRewards[questId] = { xp: 0, gold: 0 };
+            // Give rewards immediately
+            this.scene.player.xp += quest.rewardXP;
+            this.scene.player.gold += quest.rewardGold;
+            if (this.scene.uiScene && this.scene.uiScene.showFloatingText) {
+                this.scene.uiScene.showFloatingText(
+                    this.scene.player.x, this.scene.player.y - 20,
+                    '+' + quest.rewardXP + ' XP  +' + quest.rewardGold + ' Gold',
+                    '#ffd700', 16, 2000
+                );
+            }
+            return;
+        }
+
         this.questStates[questId] = 'active';
         this.questProgress[questId] = 0;
         this.questKillRewards[questId] = { xp: 0, gold: 0 };
 
-        // Only spawn enemies for kill-type quests
-        const quest = QUESTS[questId];
         if (quest.type === 'kill') {
             this.scene.startQuestSpawning(questId);
+        } else if (quest.type === 'collect_drops') {
+            // Spawn enemies so they can be killed for drops
+            this.scene.startQuestSpawning(questId);
+        } else if (quest.type === 'find_hidden') {
+            // Place hidden items on the map
+            this.scene.spawnHiddenItems(questId);
+        } else if (quest.type === 'deliver') {
+            // Show destination marker on the map
+            this.scene.spawnDeliverDestination(questId);
         }
     }
 
-    // Called when an enemy dies — checks if it counts toward any active quest
-    onEnemyKilled(enemyType, xpReward, goldDrop) {
+    // Called when an enemy dies — checks kill quests and triggers item drops for collect_drops quests
+    onEnemyKilled(enemyType, xpReward, goldDrop, enemyX, enemyY) {
         for (const questId in this.questStates) {
             if (this.questStates[questId] !== 'active') continue;
 
             const quest = QUESTS[questId];
+
             if (quest.type === 'kill' && quest.target === enemyType) {
                 this.questProgress[questId]++;
-
-                // Track the XP and gold earned from kills
                 this.questKillRewards[questId].xp += xpReward;
                 this.questKillRewards[questId].gold += goldDrop;
-
-                // Check if quest is complete
+                if (this.scene.soundManager) this.scene.soundManager.play('goldPickup');
                 if (this.questProgress[questId] >= quest.targetCount) {
                     this.completeQuest(questId);
                 }
+            } else if (quest.type === 'collect_drops' && quest.dropFrom === enemyType) {
+                // Spawn a collectible item at the enemy's death position
+                this.scene.spawnDropItem(questId, enemyX, enemyY);
             }
         }
+    }
+
+    // Called when player walks over a quest item (drop or hidden)
+    onItemCollected(questId) {
+        if (this.questStates[questId] !== 'active') return;
+
+        this.questProgress[questId]++;
+
+        const quest = QUESTS[questId];
+        const uiScene = this.scene.scene.get('UI');
+        if (uiScene && uiScene.showFloatingText) {
+            uiScene.showFloatingText(
+                this.scene.player.x, this.scene.player.y - 20,
+                quest.itemLabel + ' collected! (' + this.questProgress[questId] + '/' + quest.targetCount + ')',
+                '#ffd700', 14, 1500
+            );
+        }
+
+        if (uiScene && uiScene.updateQuestTracker) {
+            uiScene.updateQuestTracker(questId);
+        }
+
+        if (this.questProgress[questId] >= quest.targetCount) {
+            this.completeQuest(questId);
+        }
+    }
+
+    // Called by GameScene when player reaches a deliver destination
+    onDeliverReached(questId) {
+        if (this.questStates[questId] !== 'active') return;
+        this.questProgress[questId] = 1;
+        this.completeQuest(questId);
     }
 
     // Quest target reached — mark complete, stop spawns, kill all enemies
     completeQuest(questId) {
         this.questStates[questId] = 'complete';
+        if (this.scene.soundManager) this.scene.soundManager.play('questComplete');
 
-        // Stop spawning and kill all remaining enemies (only for kill quests)
         const quest = QUESTS[questId];
-        if (quest.type === 'kill') {
+        if (quest.type === 'kill' || quest.type === 'collect_drops') {
             this.scene.stopQuestSpawning(questId);
         }
 
-        // Give bonus rewards (same as what the player already earned = 2x total)
-        const bonus = this.questKillRewards[questId];
-        const bonusXP = bonus.xp;
-        const bonusGold = bonus.gold;
+        // Kill quests: give bonus equal to what was earned from kills (2x total)
+        // All other quests: give the flat rewardXP/rewardGold from the quest definition
+        let rewardXP, rewardGold;
+        if (quest.type === 'kill') {
+            const bonus = this.questKillRewards[questId];
+            rewardXP = bonus.xp;
+            rewardGold = bonus.gold;
+        } else {
+            rewardXP = quest.rewardXP || 0;
+            rewardGold = quest.rewardGold || 0;
+        }
 
-        this.scene.player.xp += bonusXP;
-        this.scene.player.gold += bonusGold;
+        this.scene.player.xp += rewardXP;
+        this.scene.player.gold += rewardGold;
 
         // Show big reward text via UIScene
         const uiScene = this.scene.scene.get('UI');
@@ -130,7 +197,7 @@ class QuestManager {
             );
             uiScene.showFloatingText(
                 this.scene.player.x, this.scene.player.y - 20,
-                '+' + bonusXP + ' XP  +' + bonusGold + ' Gold', '#2ecc71', 16, 2000
+                '+' + rewardXP + ' XP  +' + rewardGold + ' Gold', '#2ecc71', 16, 2000
             );
         }
 
@@ -159,5 +226,11 @@ class QuestManager {
         return quest.dialog.progress
             .replace('{current}', current)
             .replace('{total}', quest.targetCount);
+    }
+
+    // Check if a quest is a collect-type (items picked up, not turns killed)
+    isCollectQuest(questId) {
+        const t = QUESTS[questId] && QUESTS[questId].type;
+        return t === 'collect_drops' || t === 'find_hidden';
     }
 }

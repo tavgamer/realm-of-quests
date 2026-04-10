@@ -27,6 +27,12 @@ class CombatSystem {
 
         player.isAttacking = true;
 
+        // Play the weapon-specific attack sound
+        if (this.scene.soundManager) {
+            const attackSound = WEAPONS[player.equippedWeapon]?.sound || 'slash';
+            this.scene.soundManager.play(attackSound);
+        }
+
         // Get the weapon's damage
         const weaponData = WEAPONS[player.equippedWeapon];
         const totalDamage = player.attackPower + weaponData.damage;
@@ -57,7 +63,8 @@ class CombatSystem {
 
             const dist = Phaser.Math.Distance.Between(hbX, hbY, enemy.x, enemy.y);
             if (dist < hitboxSize + 12) {
-                // HIT! Deal damage to this enemy
+                // HIT! Play hit sound and deal damage
+                if (this.scene.soundManager) this.scene.soundManager.play('hit');
                 enemy.takeDamage(totalDamage);
 
                 // Knockback: push the enemy away from the player
@@ -263,6 +270,94 @@ class CombatSystem {
                 gfx.fillRect(0, -22, 1, 2);
                 break;
 
+            case 'sand_scimitar':
+                // Curved scimitar — wide curved blade, ornate golden handle
+                gfx.fillStyle(0x8B5E3C, 1);
+                gfx.fillRect(-2, -1, 4, 7);      // Handle
+                gfx.fillStyle(0xd4a017, 1);
+                gfx.fillRect(-5, 5, 10, 2);       // Wide ornate guard
+                gfx.fillStyle(color, 1);
+                gfx.fillRect(-1, -16, 3, 14);     // Main blade
+                gfx.fillRect(-3, -10, 3, 4);      // Curved bulge (left side)
+                gfx.fillRect(2, -14, 2, 3);       // Tip curve
+                gfx.fillStyle(0xfff0b0, 0.5);
+                gfx.fillRect(0, -16, 1, 12);      // Shine
+                break;
+
+            case 'dune_staff':
+                // Sandy staff with forked top and glowing amber orb
+                gfx.fillStyle(0x7a5c30, 1);
+                gfx.fillRect(-1, -2, 2, 10);      // Shaft base
+                gfx.fillStyle(0xa07840, 1);
+                gfx.fillRect(-1, -18, 2, 16);     // Tall shaft
+                // Forked prongs at top
+                gfx.fillStyle(0xb88c40, 1);
+                gfx.fillRect(-4, -20, 2, 5);      // Left prong
+                gfx.fillRect(2, -20, 2, 5);       // Right prong
+                // Orb
+                gfx.fillStyle(color, 1);
+                gfx.fillCircle(0, -21, 5);
+                gfx.fillStyle(0xfffaaa, 0.6);
+                gfx.fillCircle(-1, -22, 2);       // Shine
+                break;
+
+            case 'void_blade':
+                // Dark long blade with void-crack glowing notches
+                gfx.fillStyle(0x1a0033, 1);
+                gfx.fillRect(-2, -2, 4, 7);       // Dark handle
+                gfx.fillStyle(0x6600aa, 1);
+                gfx.fillRect(-5, 4, 10, 3);       // Purple guard
+                gfx.fillStyle(0x0a0015, 1);
+                gfx.fillRect(-2, -20, 4, 18);     // Near-black blade
+                // Void cracks (purple glowing cuts)
+                gfx.fillStyle(color, 1);
+                gfx.fillRect(-1, -18, 1, 3);
+                gfx.fillRect(1, -13, 1, 3);
+                gfx.fillRect(-1, -8, 1, 3);
+                // Tip
+                gfx.fillStyle(0xdd88ff, 0.9);
+                gfx.fillRect(-1, -22, 2, 2);
+                gfx.fillRect(0, -24, 1, 2);
+                break;
+
+            case 'chaos_staff':
+                // Twisted double-orb chaos staff
+                gfx.fillStyle(0x5a0050, 1);
+                gfx.fillRect(-1, -2, 2, 10);      // Lower shaft
+                gfx.fillRect(-1, -20, 2, 18);     // Upper shaft
+                // Spiral wrap
+                gfx.fillStyle(0xdd00cc, 0.6);
+                gfx.fillRect(-2, -15, 1, 3);
+                gfx.fillRect(1, -11, 1, 3);
+                gfx.fillRect(-2, -7, 1, 3);
+                // Twin orbs
+                gfx.fillStyle(color, 1);
+                gfx.fillCircle(-4, -22, 4);
+                gfx.fillCircle(4, -22, 4);
+                gfx.fillStyle(0xff88ff, 0.6);
+                gfx.fillCircle(-5, -23, 2);
+                gfx.fillCircle(3, -23, 2);
+                break;
+
+            case 'shadow_scythe':
+                // Wide scythe with curved bone-like blade
+                gfx.fillStyle(0x0a0015, 1);
+                gfx.fillRect(-1, -2, 2, 8);       // Pole
+                gfx.fillRect(-1, -20, 2, 18);     // Long pole
+                // Scythe blade sweeping to the right
+                gfx.fillStyle(0x1a0033, 1);
+                gfx.fillRect(0, -20, 8, 3);       // Blade base
+                gfx.fillRect(5, -22, 4, 3);       // Outer edge
+                gfx.fillRect(7, -24, 2, 4);       // Tip curve
+                gfx.fillRect(1, -17, 6, 2);       // Inner curve
+                // Edge glow
+                gfx.fillStyle(color, 0.8);
+                gfx.fillRect(1, -20, 7, 1);
+                gfx.fillRect(6, -22, 3, 1);
+                gfx.fillStyle(0xaa44ff, 0.4);
+                gfx.fillRect(2, -21, 5, 1);
+                break;
+
             default:
                 // Fallback basic sword
                 gfx.fillStyle(0x8B4513, 1);
@@ -366,6 +461,104 @@ class CombatSystem {
                     alpha: 0,
                     duration: 250,
                     onComplete: () => spark.destroy()
+                });
+            }
+        } else if (weaponId === 'sand_scimitar') {
+            // Sand grains scattering on hit
+            for (let i = 0; i < 5; i++) {
+                const grain = this.scene.add.rectangle(
+                    x + Phaser.Math.Between(-10, 10),
+                    y + Phaser.Math.Between(-10, 10),
+                    2, 2, Phaser.Math.RND.pick([0xc8a050, 0xd4a017, 0xfff0b0]), 1
+                ).setDepth(16);
+                this.scene.tweens.add({
+                    targets: grain,
+                    x: grain.x + Phaser.Math.Between(-20, 20),
+                    y: grain.y + Phaser.Math.Between(5, 20),
+                    alpha: 0,
+                    duration: Phaser.Math.Between(250, 400),
+                    onComplete: () => grain.destroy()
+                });
+            }
+        } else if (weaponId === 'dune_staff') {
+            // Amber magic burst
+            const burst = this.scene.add.circle(x, y, 4, 0xd4a017, 0.7).setDepth(16);
+            this.scene.tweens.add({
+                targets: burst, scaleX: 4, scaleY: 4, alpha: 0,
+                duration: 300, onComplete: () => burst.destroy()
+            });
+            for (let i = 0; i < 3; i++) {
+                const mote = this.scene.add.circle(
+                    x + Phaser.Math.Between(-8, 8),
+                    y + Phaser.Math.Between(-8, 8),
+                    3, 0xffd700, 0.8
+                ).setDepth(16);
+                this.scene.tweens.add({
+                    targets: mote,
+                    x: mote.x + Phaser.Math.Between(-18, 18),
+                    y: mote.y - Phaser.Math.Between(10, 20),
+                    alpha: 0, scaleX: 1.5, scaleY: 1.5,
+                    duration: 400, onComplete: () => mote.destroy()
+                });
+            }
+        } else if (weaponId === 'void_blade') {
+            // Void rift tear effect
+            const rift = this.scene.add.rectangle(x, y, 3, 20, 0x6600aa, 0.9).setDepth(16);
+            this.scene.tweens.add({
+                targets: rift, scaleX: 5, scaleY: 0.2, alpha: 0,
+                duration: 350, onComplete: () => rift.destroy()
+            });
+            for (let i = 0; i < 6; i++) {
+                const shard = this.scene.add.rectangle(
+                    x + Phaser.Math.Between(-6, 6),
+                    y + Phaser.Math.Between(-6, 6),
+                    1, Phaser.Math.Between(4, 8), 0xaa44ff, 1
+                ).setDepth(16);
+                this.scene.tweens.add({
+                    targets: shard,
+                    x: shard.x + Phaser.Math.Between(-22, 22),
+                    y: shard.y + Phaser.Math.Between(-22, 22),
+                    alpha: 0, angle: Phaser.Math.Between(-180, 180),
+                    duration: Phaser.Math.Between(300, 500),
+                    onComplete: () => shard.destroy()
+                });
+            }
+        } else if (weaponId === 'chaos_staff') {
+            // Chaos swirl — orbs spiral outward
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const orb = this.scene.add.circle(x, y, 4,
+                    Phaser.Math.RND.pick([0xaa00aa, 0xff00ff, 0xdd00cc, 0x6600aa]), 0.8
+                ).setDepth(16);
+                this.scene.tweens.add({
+                    targets: orb,
+                    x: x + Math.cos(angle) * 24,
+                    y: y + Math.sin(angle) * 24,
+                    alpha: 0, scaleX: 2, scaleY: 2,
+                    duration: 450, onComplete: () => orb.destroy()
+                });
+            }
+        } else if (weaponId === 'shadow_scythe') {
+            // Dark reap — dark crescent wisps
+            const reap = this.scene.add.circle(x, y, 5, 0x1a0033, 0.9).setDepth(16);
+            this.scene.tweens.add({
+                targets: reap, scaleX: 6, scaleY: 6, alpha: 0,
+                duration: 400, onComplete: () => reap.destroy()
+            });
+            for (let i = 0; i < 5; i++) {
+                const wisp = this.scene.add.circle(
+                    x + Phaser.Math.Between(-10, 10),
+                    y + Phaser.Math.Between(-10, 10),
+                    Phaser.Math.Between(3, 6),
+                    Phaser.Math.RND.pick([0x1a0033, 0x4b0082, 0xaa44ff]), 0.7
+                ).setDepth(16);
+                this.scene.tweens.add({
+                    targets: wisp,
+                    x: wisp.x + Phaser.Math.Between(-25, 25),
+                    y: wisp.y + Phaser.Math.Between(-15, 5),
+                    alpha: 0, scaleX: 2.5, scaleY: 2.5,
+                    duration: Phaser.Math.Between(400, 600),
+                    onComplete: () => wisp.destroy()
                 });
             }
         }

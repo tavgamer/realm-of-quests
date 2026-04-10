@@ -82,6 +82,18 @@ class ShopScene extends Phaser.Scene {
                 if (ARMOR[id].cost >= 200) deepArmor[id] = ARMOR[id];
             }
             this.drawSection('DEEP SEA ARMOR', 80, 400, w - 160, 250, deepArmor, 'armor');
+        } else if (this.shopType === 'advanced_shop') {
+            // Area 4 Desert Trader: mid-tier weapons + armor (no potions in advanced areas)
+            const advWeapons = { sand_scimitar: WEAPONS.sand_scimitar, dune_staff: WEAPONS.dune_staff };
+            const advArmor = { desert_mail: ARMOR.desert_mail, sandstone_plate: ARMOR.sandstone_plate };
+            this.drawSection('DESERT WEAPONS', 80, 125, w - 160, 250, advWeapons, 'weapon');
+            this.drawSection('DESERT ARMOR', 80, 400, w - 160, 250, advArmor, 'armor');
+        } else if (this.shopType === 'elite_shop') {
+            // Area 10 Shadow Merchant: endgame weapons + armor (no potions in advanced areas)
+            const eliteWeapons = { void_blade: WEAPONS.void_blade, chaos_staff: WEAPONS.chaos_staff, shadow_scythe: WEAPONS.shadow_scythe };
+            const eliteArmor = { shadow_robe: ARMOR.shadow_robe, void_plate: ARMOR.void_plate };
+            this.drawSection('VOID WEAPONS', 80, 125, w - 160, 250, eliteWeapons, 'weapon');
+            this.drawSection('VOID ARMOR', 80, 400, w - 160, 250, eliteArmor, 'armor');
         }
 
         // --- CLOSE KEYS ---

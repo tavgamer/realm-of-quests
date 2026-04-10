@@ -421,116 +421,216 @@ class UIScene extends Phaser.Scene {
         const areaId = gameScene.currentAreaId;
         const tileSize = 16;
         const isUnderwater = (areaId === 'area2');
+        const isElderHouse = (areaId === 'elder_house');
 
-        // Map dimensions — fit inside the screen with padding
-        const mapW = 900;
-        const mapH = 540;
-        const mapX = 190;  // left edge
-        const mapY = 85;   // top edge
-
-        // Scale: how many screen pixels per tile
+        const mapW = 900, mapH = 540, mapX = 190, mapY = 85;
         const scaleX = mapW / area.width;
         const scaleY = mapH / area.height;
 
-        // Show overlay
         this.mapOverlay.setVisible(true);
         this.mapTitle.setVisible(true).setText(area.name);
         this.mapHint.setVisible(true);
 
-        // Draw the map background
-        this.mapGraphics.clear();
-        const bgColor = isUnderwater ? 0x1a3a4a : 0x4a8c3f;
-        this.mapGraphics.fillStyle(bgColor, 1);
-        this.mapGraphics.fillRect(mapX, mapY, mapW, mapH);
-
-        // Border
-        this.mapGraphics.lineStyle(2, 0xffd700, 0.8);
-        this.mapGraphics.strokeRect(mapX, mapY, mapW, mapH);
-
-        // Draw paths
-        const pathColor = isUnderwater ? 0x2a5a6a : 0xc4a265;
-        this.mapGraphics.fillStyle(pathColor, 0.7);
-        // Horizontal path
-        const midY = Math.floor(area.height / 2);
-        this.mapGraphics.fillRect(mapX, mapY + midY * scaleY, mapW, scaleY * 2);
-        // Vertical path
-        const midX = Math.floor(area.width / 2);
-        this.mapGraphics.fillRect(mapX + midX * scaleX, mapY, scaleX * 2, mapH);
-
-        if (!isUnderwater) {
-            // Left village path
-            this.mapGraphics.fillRect(mapX + 15 * scaleX, mapY + 10 * scaleY, scaleX * 2, (area.height - 20) * scaleY);
-        }
-
-        // Draw water
+        const g = this.mapGraphics;
+        g.clear();
         this.mapIcons.clear();
-        const waterColor = isUnderwater ? 0x1565c0 : 0x1565c0;
-        this.mapGraphics.fillStyle(waterColor, 0.8);
 
-        if (!isUnderwater) {
-            // Big hidden pond
-            this.mapGraphics.fillRect(mapX + 54 * scaleX, mapY + 38 * scaleY, 9 * scaleX, 9 * scaleY);
-            // Small village pond
-            this.mapGraphics.fillRect(mapX + 20 * scaleX, mapY + 22 * scaleY, 3 * scaleX, 2 * scaleY);
+        if (isElderHouse) {
+            // Simple interior map
+            g.fillStyle(0x6d4c2e, 1); g.fillRect(mapX, mapY, mapW, mapH);
+            g.fillStyle(0x795548, 1);
+            g.fillRect(mapX, mapY, mapW, scaleY * 2); // top wall
+            g.fillRect(mapX, mapY, scaleX * 2, mapH);  // left wall
+            g.fillRect(mapX + mapW - scaleX * 2, mapY, scaleX * 2, mapH); // right wall
+            g.fillRect(mapX, mapY + mapH - scaleY * 2, mapW, scaleY * 2); // bottom wall
+            // Door gap
+            g.fillStyle(0x6d4c2e, 1);
+            g.fillRect(mapX + 6 * scaleX, mapY + mapH - scaleY * 2, 2 * scaleX, scaleY * 2);
+            g.lineStyle(2, 0xffd700, 0.8); g.strokeRect(mapX, mapY, mapW, mapH);
+        } else if (isUnderwater) {
+            // Underwater map
+            g.fillStyle(0x1a3a4a, 1); g.fillRect(mapX, mapY, mapW, mapH);
+            g.lineStyle(2, 0xffd700, 0.8); g.strokeRect(mapX, mapY, mapW, mapH);
+            // Paths
+            const midY = Math.floor(area.height / 2), midX = Math.floor(area.width / 2);
+            g.fillStyle(0x2a5a6a, 0.7);
+            g.fillRect(mapX, mapY + midY * scaleY, mapW, scaleY * 2);
+            g.fillRect(mapX + midX * scaleX, mapY, scaleX * 2, mapH);
+            // Water pools
+            g.fillStyle(0x1565c0, 0.8);
+            g.fillRect(mapX + 12 * scaleX, mapY + 10 * scaleY, 6 * scaleX, 4 * scaleY);
+            g.fillRect(mapX + 52 * scaleX, mapY + 35 * scaleY, 4 * scaleX, 3 * scaleY);
+            // Portal glow on pool 1
+            g.lineStyle(2, 0x00ff88, 0.7);
+            g.strokeRect(mapX + 12 * scaleX - 2, mapY + 10 * scaleY - 2, 6 * scaleX + 4, 4 * scaleY + 4);
+            // Ruins
+            g.fillStyle(0x4a6a7a, 0.9);
+            [[33,23,4,3],[15,18,3,2],[50,20,3,2],[25,35,3,2],[45,35,3,2],[35,10,2,2],[20,42,2,2],[55,42,3,2]].forEach(r => {
+                g.fillRect(mapX + r[0] * scaleX, mapY + r[1] * scaleY, r[2] * scaleX, r[3] * scaleY);
+            });
+        } else if (/^area([3-9]|10)$/.test(areaId)) {
+            // === NEW AREAS (3-10) — themed maps ===
+            const AREA_MAP_THEMES = {
+                area3:  { bg: 0x2d4a1e, path: 0x5c4033, water: [[10,15,8,6],[55,40,6,5]], portal: [10,15,8,6], label: 'Swamp' },
+                area4:  { bg: 0xd4a757, path: 0xb8860b, water: [[20,25,5,4]], portal: [20,25,5,4], label: 'Desert' },
+                area5:  { bg: 0x2a1a0a, path: 0x4a3020, water: [], portal: [65,60,5,3], lava: [[20,20,10,4],[50,50,8,5]], label: 'Volcano' },
+                area6:  { bg: 0xdce8f0, path: 0xa0b8c8, water: [[30,20,12,8]], portal: [75,50,5,3], label: 'Tundra' },
+                area7:  { bg: 0x1a1a2e, path: 0x3d3d5c, water: [], portal: [55,60,5,3], walls: [15,15,40,40], label: 'Castle' },
+                area8:  { bg: 0x1a1030, path: 0x2a1a40, water: [], portal: [65,60,5,3], label: 'Caverns' },
+                area9:  { bg: 0x87ceeb, path: 0xdaa520, water: [], portal: [65,50,5,3], label: 'Temple' },
+                area10: { bg: 0x0a0015, path: 0x2d0050, water: [[25,25,8,6]], portal: [75,60,5,3], label: 'Shadow' },
+            };
+            const theme = AREA_MAP_THEMES[areaId];
+            // Background
+            g.fillStyle(theme.bg, 1); g.fillRect(mapX, mapY, mapW, mapH);
+            g.lineStyle(2, 0xffd700, 0.8); g.strokeRect(mapX, mapY, mapW, mapH);
+            // Paths (cross pattern)
+            g.fillStyle(theme.path, 0.6);
+            g.fillRect(mapX, mapY + Math.floor(area.height * 0.45) * scaleY, mapW, scaleY * 2);
+            g.fillRect(mapX + Math.floor(area.width * 0.5) * scaleX, mapY, scaleX * 2, mapH);
+            // Water / lava
+            if (theme.water) {
+                g.fillStyle(0x1565c0, 0.7);
+                theme.water.forEach(([wx,wy,ww,wh]) => {
+                    g.fillRect(mapX + wx * scaleX, mapY + wy * scaleY, ww * scaleX, wh * scaleY);
+                });
+            }
+            if (theme.lava) {
+                g.fillStyle(0xff4500, 0.6);
+                theme.lava.forEach(([lx,ly,lw,lh]) => {
+                    g.fillRect(mapX + lx * scaleX, mapY + ly * scaleY, lw * scaleX, lh * scaleY);
+                });
+            }
+            // Castle walls
+            if (theme.walls) {
+                const [wx,wy,ww,wh] = theme.walls;
+                g.lineStyle(2, 0x546e7a, 0.7);
+                g.strokeRect(mapX + wx * scaleX, mapY + wy * scaleY, ww * scaleX, wh * scaleY);
+            }
+            // Portal (green glow)
+            if (theme.portal) {
+                const [px,py,pw,ph] = theme.portal;
+                g.fillStyle(0x00ff88, 0.5);
+                g.fillRect(mapX + px * scaleX, mapY + py * scaleY, pw * scaleX, ph * scaleY);
+                g.lineStyle(2, 0x00ff88, 0.7);
+                g.strokeRect(mapX + px * scaleX - 2, mapY + py * scaleY - 2, pw * scaleX + 4, ph * scaleY + 4);
+            }
         } else {
-            // Deep-water pools
-            this.mapGraphics.fillRect(mapX + 12 * scaleX, mapY + 10 * scaleY, 6 * scaleX, 4 * scaleY);
-            this.mapGraphics.fillRect(mapX + 52 * scaleX, mapY + 35 * scaleY, 4 * scaleX, 3 * scaleY);
+            // === AREA 1: GREENWOOD VILLAGE ===
+            // Grass background
+            g.fillStyle(0x4a8c3f, 1); g.fillRect(mapX, mapY, mapW, mapH);
+            g.lineStyle(2, 0xffd700, 0.8); g.strokeRect(mapX, mapY, mapW, mapH);
+
+            // Jungle zone (dark green)
+            g.fillStyle(0x1b5e20, 0.5);
+            g.fillRect(mapX + 55 * scaleX, mapY + 34 * scaleY, 42 * scaleX, 44 * scaleY);
+            // Darker core jungle
+            g.fillStyle(0x0d3b0d, 0.3);
+            g.fillRect(mapX + 60 * scaleX, mapY + 40 * scaleY, 30 * scaleX, 35 * scaleY);
+
+            // Paths
+            g.fillStyle(0xc4a265, 0.7);
+            // Main horizontal road at y=40
+            g.fillRect(mapX, mapY + 40 * scaleY, mapW, scaleY * 2);
+            // Vertical path at x=50
+            g.fillRect(mapX + 50 * scaleX, mapY + 3 * scaleY, scaleX * 2, (area.height - 6) * scaleY);
+            // City path from gate (y=22) to main road (y=40)
+            g.fillRect(mapX + 14 * scaleX, mapY + 22 * scaleY, scaleX * 2, 18 * scaleY);
+            // Connection from city path to main road
+            g.fillRect(mapX + 14 * scaleX, mapY + 40 * scaleY, 36 * scaleX, scaleY * 2);
+
+            // City walls (thick outline with fill)
+            g.fillStyle(0x546e7a, 0.6);
+            g.fillRect(mapX + 4 * scaleX, mapY + 5 * scaleY, 22 * scaleX, scaleY);  // top
+            g.fillRect(mapX + 4 * scaleX, mapY + 5 * scaleY, scaleX, 16 * scaleY);  // left
+            g.fillRect(mapX + 25 * scaleX, mapY + 5 * scaleY, scaleX, 16 * scaleY); // right
+            g.fillRect(mapX + 4 * scaleX, mapY + 20 * scaleY, 9 * scaleX, scaleY);  // bottom-left
+            g.fillRect(mapX + 16 * scaleX, mapY + 20 * scaleY, 10 * scaleX, scaleY); // bottom-right
+            // City interior (lighter)
+            g.fillStyle(0x8d8d6e, 0.3);
+            g.fillRect(mapX + 5 * scaleX, mapY + 6 * scaleY, 20 * scaleX, 14 * scaleY);
+            // Gate opening
+            g.fillStyle(0xc4a265, 0.8);
+            g.fillRect(mapX + 13 * scaleX, mapY + 20 * scaleY, 3 * scaleX, scaleY);
+
+            // Corner towers (small squares)
+            g.fillStyle(0x455a64, 0.8);
+            [[4,5],[25,5],[4,20],[25,20]].forEach(([tx,ty]) => {
+                g.fillRect(mapX + tx * scaleX - 2, mapY + ty * scaleY - 2, scaleX + 4, scaleY + 4);
+            });
+
+            // Water bodies (visible ones only — NOT the hidden pond)
+            g.fillStyle(0x1565c0, 0.8);
+            g.fillRect(mapX + 18 * scaleX, mapY + 28 * scaleY, 3 * scaleX, 2 * scaleY); // village pond
+            g.fillRect(mapX + 38 * scaleX, mapY + 12 * scaleY, 4 * scaleX, 3 * scaleY); // small lake
+
+            // Bridge over village pond
+            g.fillStyle(0x795548, 0.8);
+            g.fillRect(mapX + 19 * scaleX, mapY + 28 * scaleY, 2 * scaleX, 3 * scaleY);
+
+            // Houses (brown rectangles)
+            g.fillStyle(0xd4a574, 0.9);
+            // City houses
+            [[7,8,4,3],[8,14,3,2],[20,8,3,2],[20,14,3,2]].forEach(h => {
+                g.fillRect(mapX + h[0] * scaleX, mapY + h[1] * scaleY, h[2] * scaleX, h[3] * scaleY);
+            });
+            // Outside houses
+            [[35,38,3,2],[45,20,2,2],[30,55,3,2],[8,50,3,2],[48,62,2,2]].forEach(h => {
+                g.fillRect(mapX + h[0] * scaleX, mapY + h[1] * scaleY, h[2] * scaleX, h[3] * scaleY);
+            });
+
+            // Market stand
+            g.fillStyle(0xc62828, 0.7);
+            g.fillRect(mapX + 16 * scaleX, mapY + 13 * scaleY, 4 * scaleX, 2 * scaleY);
+
+            // Campfire
+            g.fillStyle(0xff5722, 0.8);
+            g.fillCircle(mapX + 48 * scaleX, mapY + 38 * scaleY, 3);
+
+            // Fence line
+            g.lineStyle(1, 0x795548, 0.5);
+            g.beginPath();
+            g.moveTo(mapX + 12 * scaleX, mapY + 24 * scaleY);
+            g.lineTo(mapX + 12 * scaleX, mapY + 38 * scaleY);
+            g.strokePath();
+
+            // Tree clusters (small green dots to show forests)
+            g.fillStyle(0x2e7d32, 0.6);
+            // Northern scattered trees
+            [[4,3],[29,3],[46,4],[56,3],[86,3]].forEach(([tx,ty]) => {
+                g.fillCircle(mapX + tx * scaleX, mapY + ty * scaleY, 4);
+            });
+            // West forest
+            [[3,31],[3,37],[3,46],[3,56],[3,66]].forEach(([tx,ty]) => {
+                g.fillCircle(mapX + tx * scaleX, mapY + ty * scaleY, 4);
+            });
+            // South meadow
+            [[9,61],[21,63],[36,66],[16,73],[43,71]].forEach(([tx,ty]) => {
+                g.fillCircle(mapX + tx * scaleX, mapY + ty * scaleY, 4);
+            });
         }
 
-        // Draw houses/ruins
-        const buildColor = isUnderwater ? 0x4a6a7a : 0xd4a574;
-        this.mapGraphics.fillStyle(buildColor, 0.9);
-        // Get house positions from area data
-        if (!isUnderwater) {
-            const houses = [[10,7,3,2],[16,6,3,2],[6,12,2,2],[18,11,3,2],[10,33,3,2],[14,35,2,2],[22,28,3,2],[26,26,2,2],[45,12,2,2],[60,14,3,2],[40,42,2,2],[15,50,3,2]];
-            houses.forEach(h => {
-                this.mapGraphics.fillRect(mapX + h[0] * scaleX, mapY + h[1] * scaleY, h[2] * scaleX, h[3] * scaleY);
-            });
-        } else {
-            const ruins = [[33,23,4,3],[15,18,3,2],[50,20,3,2],[25,35,3,2],[45,35,3,2],[35,10,2,2],[20,42,2,2],[55,42,3,2]];
-            ruins.forEach(r => {
-                this.mapGraphics.fillRect(mapX + r[0] * scaleX, mapY + r[1] * scaleY, r[2] * scaleX, r[3] * scaleY);
-            });
-        }
-
-        // Draw NPCs (yellow dots)
+        // Draw NPCs (yellow dots with name)
+        const ic = this.mapIcons;
         for (const npcId in NPCS) {
             const npcData = NPCS[npcId];
             if (npcData.area !== areaId) continue;
-            this.mapIcons.fillStyle(0xffd700, 1);
-            this.mapIcons.fillRect(
-                mapX + npcData.x * scaleX - 3,
-                mapY + npcData.y * scaleY - 3,
-                6, 6
-            );
-            // NPC label
-            this.mapIcons.fillStyle(0xffd700, 0.8);
+            ic.fillStyle(0xffd700, 1);
+            ic.fillRect(mapX + npcData.x * scaleX - 3, mapY + npcData.y * scaleY - 3, 6, 6);
+        }
+        // Show elder on area1 map (inside the house)
+        if (areaId === 'area1') {
+            ic.fillStyle(0xffd700, 1);
+            ic.fillRect(mapX + 9 * scaleX - 3, mapY + 10 * scaleY - 3, 6, 6);
+            // Show area portals as colored dots
+            if (gameScene.areaPortals) {
+                gameScene.areaPortals.forEach(p => {
+                    ic.fillStyle(p.color, 0.8);
+                    ic.fillRect(mapX + p.tx * scaleX - 2, mapY + p.ty * scaleY - 2, 5, 5);
+                });
+            }
         }
 
-        // Draw treasure chests (orange dots, only unopened, area1 only)
-        if (!isUnderwater && gameScene.chests) {
-            gameScene.chests.forEach(chest => {
-                if (!chest.isOpened) {
-                    this.mapIcons.fillStyle(0xf39c12, 0.8);
-                    const cx = chest.x / tileSize;
-                    const cy = chest.y / tileSize;
-                    this.mapIcons.fillRect(
-                        mapX + cx * scaleX - 2,
-                        mapY + cy * scaleY - 2,
-                        4, 4
-                    );
-                }
-            });
-        }
-
-        // Draw legend
-        const legX = mapX + mapW + 10;
-        // We'll use simple colored squares as legend — but we're out of space
-        // So put legend at bottom inside the map
-        const legY = mapY + mapH + 8;
-
-        // Store map params for player dot update
         this._mapParams = { mapX, mapY, scaleX, scaleY, tileSize };
     }
 
@@ -741,6 +841,16 @@ class UIScene extends Phaser.Scene {
                 } else if (quest.type === 'talk') {
                     const npc = NPCS[quest.target] ? NPCS[quest.target].name : quest.target;
                     this.questTrackerProgress.setText(`Find ${npc}`);
+                } else if (quest.type === 'collect_drops') {
+                    this.questTrackerProgress.setText(
+                        `Collect ${quest.itemLabel}: ${progress}/${quest.targetCount}`
+                    );
+                } else if (quest.type === 'find_hidden') {
+                    this.questTrackerProgress.setText(
+                        `Find ${quest.itemLabel}: ${progress}/${quest.targetCount}`
+                    );
+                } else if (quest.type === 'deliver') {
+                    this.questTrackerProgress.setText(`Deliver to ${quest.destinationLabel}`);
                 } else {
                     this.questTrackerProgress.setText('In progress...');
                 }
@@ -794,6 +904,9 @@ class UIScene extends Phaser.Scene {
 
         const potionData = POTIONS[potionId];
         player.potions[potionId]--;
+
+        // Play potion drink sound
+        if (gameScene.soundManager) gameScene.soundManager.play('potionUse');
 
         let floatText = '';
         let floatColor = '#ffffff';

@@ -123,8 +123,14 @@ class DialogScene extends Phaser.Scene {
             } else if (quest.type === 'talk') {
                 const npc = NPCS[quest.target] ? NPCS[quest.target].name : quest.target;
                 infoStr += `Objective: Find and meet ${npc}\nReward: ${quest.rewardXP} XP + ${quest.rewardGold} Gold`;
+            } else if (quest.type === 'collect_drops') {
+                infoStr += `Objective: Collect ${quest.targetCount} ${quest.itemLabel}\nReward: ${quest.rewardXP} XP + ${quest.rewardGold} Gold`;
+            } else if (quest.type === 'find_hidden') {
+                infoStr += `Objective: Find ${quest.targetCount} ${quest.itemLabel}\nReward: ${quest.rewardXP} XP + ${quest.rewardGold} Gold`;
+            } else if (quest.type === 'deliver') {
+                infoStr += `Objective: Deliver to ${quest.destinationLabel}\nReward: ${quest.rewardXP} XP + ${quest.rewardGold} Gold`;
             } else {
-                infoStr += `Objective: ${quest.target}`;
+                infoStr += `Objective: ${quest.targetCount} required`;
             }
             this.questInfoText.setText(infoStr);
 

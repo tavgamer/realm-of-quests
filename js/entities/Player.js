@@ -162,6 +162,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         // don't restart it". Without this, the animation would reset every frame!
         if (velocityX !== 0 || velocityY !== 0) {
             this.anims.play('player-walk-' + this.facing, true);
+            if (this.scene.soundManager) this.scene.soundManager.playWalk();
         } else {
             this.anims.play('player-idle-' + this.facing, true);
         }
@@ -245,6 +246,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     showLevelUpEffect() {
+        if (this.scene.soundManager) this.scene.soundManager.play('levelUp');
         // Flash golden
         this.setTintFill(0xffd700);
         this.scene.time.delayedCall(200, () => this.clearTint());
@@ -282,6 +284,9 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     // The player's armor reduces incoming damage.
     takeDamage(amount) {
         if (this.invincible) return; // Can't be hurt during i-frames
+
+        // Play hurt sound
+        if (this.scene.soundManager) this.scene.soundManager.play('playerHit');
 
         // Calculate damage after armor
         const armorData = ARMOR[this.equippedArmor];

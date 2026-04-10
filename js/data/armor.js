@@ -36,5 +36,35 @@ const ARMOR = {
         cost: 800,
         requiredLevel: 1,
         color: 0x3498DB
+    },
+    // === AREA 4 TIER — Desert Shop ===
+    desert_mail: {
+        name: 'Desert Mail',
+        defense: 28,
+        cost: 2000,
+        requiredLevel: 9,
+        color: 0xd4a017
+    },
+    sandstone_plate: {
+        name: 'Sandstone Plate',
+        defense: 36,
+        cost: 3500,
+        requiredLevel: 9,
+        color: 0xc8a050
+    },
+    // === AREA 10 TIER — Shadow Shop ===
+    shadow_robe: {
+        name: 'Shadow Robe',
+        defense: 55,
+        cost: 7500,
+        requiredLevel: 19,
+        color: 0x4a0080
+    },
+    void_plate: {
+        name: 'Void Plate',
+        defense: 65,
+        cost: 9000,
+        requiredLevel: 19,
+        color: 0x1a0033
     }
 };
